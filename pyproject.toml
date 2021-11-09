@@ -1,0 +1,30 @@
+[tool]
+
+[tool.isort]
+# See: https://pycqa.github.io/isort/docs/configuration/options/#example-pyprojecttoml
+profile = "black"
+combine_as_imports = true
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "THIRDPARTY",
+    "DJANGO",
+    "DJANGOLIBS",
+    "FIRSTPARTY",
+    "LOCALFOLDER"
+]
+# Group for all django imports
+known_django = ["django"]
+# Group for all django-related packages
+known_djangolibs = [
+    "dal",
+    "dal_select2",
+    "django_cas_ng",
+    "django_crispy_forms",
+    "django_debug_toolbar",
+    "django_environ",
+    "django_extensions",
+    "django_filters",
+    "django_tables2",
+    "django_stronghold",
+]

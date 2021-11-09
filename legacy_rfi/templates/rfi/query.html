@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>PLOTS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+  </head>
+
+  <body>
+    <div class="container">
+    <form action="/graph/" method="get">
+      <div class="row">
+        <div class="col">
+          <div class="mb-3">
+            <label for="receivers" class="form-label">Receivers</label>
+            <select name="receivers" id="receivers" class="form-select" multiple aria-label="multiple select example">
+              {% for name, value in form.fields.receivers.choices %}
+                <option value="{{value}}">{{name}}</option>
+              {% endfor %}
+            </select>
+            <div id="receiversHelp" class="form-text">Receivers</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="mb-3">
+            <label for="start" class="form-label">Start</label>
+            <input name="start" id="start" type="text" class="form-control" placeholder="YYYY/mm/dd [HH:MM:SS]" id="start" aria-describedby="startHelp">
+            <div id="startHelp" class="form-text">Start date</div>
+          </div>
+          <div class="mb-3">
+            <label for="end" class="form-label">End</label>
+            <input name="end" id="end" type="text" class="form-control" placeholder="YYYY/mm/dd [HH:MM:SS]" id="end" aria-describedby="endHelp">
+            <div id="endHelp" class="form-text">End date</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="mb-3">
+            <label for="freq_low" class="form-label">Frequency Low (MHz)</label>
+            <input name="freq_low" id="freq_low" type="text" class="form-control" placeholder="" id="freq_low" aria-describedby="freq_low_help">
+            <div id="freq_low_help" class="form-text">Bottom of frequency range</div>
+          </div>
+          <div class="mb-3">
+            <label for="freq_high" class="form-label">Frequency High (MHz)</label>
+            <input name="freq_high" id="freq_high" type="text" class="form-control" placeholder="" id="freq_high" aria-describedby="freq_high_help">
+            <div id="freq_high_help" class="form-text">Top of frequency range</div>
+          </div>
+        </div>
+        
+      </div>
+
+      <input type="submit" class="btn btn-primary">Submit</input>
+    </form>
+
+
+  </body>
+</html>
