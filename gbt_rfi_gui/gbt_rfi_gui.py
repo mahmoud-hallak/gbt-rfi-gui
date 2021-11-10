@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rfi_query.settings")
 
@@ -23,6 +23,8 @@ class Window(QtWidgets.QWidget):
         self.form_groupbox = QtWidgets.QGroupBox("Info")
         form = QtWidgets.QFormLayout()
 
+        MAX_TIME_RANGE = timedelta(days=30)
+
         # List of receivers
         self.receivers = QtWidgets.QListWidget()
         self.receivers.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -31,11 +33,11 @@ class Window(QtWidgets.QWidget):
 
         # Start and Stop Date DateEdit widgets
         self.start_date = QtWidgets.QDateEdit(calendarPopup=True)
-        self.start_date.setDate(datetime(2021, 9, 1))
+        self.start_date.setDate(datetime.today() - timedelta(MAX_TIME_RANGE))
         form.addRow(QtWidgets.QLabel("Start Date:"), self.start_date)
 
         self.end_date = QtWidgets.QDateEdit(calendarPopup=True)
-        self.end_date.setDate(datetime(2021, 11, 1))
+        self.end_date.setDate(datetime.today())
         form.addRow(QtWidgets.QLabel("End Date:"), self.end_date)
 
         # Frequency Range
@@ -123,8 +125,10 @@ class Window(QtWidgets.QWidget):
 
     def clicked(self):
         receivers = [i.text() for i in self.receivers.selectedItems()]
-        start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
         end_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        if (end_date - start_date) > MAX_TIME_RANGE:
+            start_date = end_date - MAX_TIME_RANGE
 
         try:
             start_frequency = float(self.start_frequency.text())
