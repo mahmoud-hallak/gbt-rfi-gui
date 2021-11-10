@@ -23,7 +23,7 @@ class Window(QtWidgets.QWidget):
         self.form_groupbox = QtWidgets.QGroupBox("Info")
         form = QtWidgets.QFormLayout()
 
-        MAX_TIME_RANGE = timedelta(days=30)
+        self.MAX_TIME_RANGE = timedelta(days=30)
 
         # List of receivers
         self.receivers = QtWidgets.QListWidget()
@@ -33,7 +33,7 @@ class Window(QtWidgets.QWidget):
 
         # Start and Stop Date DateEdit widgets
         self.start_date = QtWidgets.QDateEdit(calendarPopup=True)
-        self.start_date.setDate(datetime.today() - timedelta(MAX_TIME_RANGE))
+        self.start_date.setDate(datetime.today() - self.MAX_TIME_RANGE)
         form.addRow(QtWidgets.QLabel("Start Date:"), self.start_date)
 
         self.end_date = QtWidgets.QDateEdit(calendarPopup=True)
@@ -63,7 +63,16 @@ class Window(QtWidgets.QWidget):
     def get_scans(
         self, receivers, start_date, end_date, start_frequency, end_frequency
     ):
-        qs = Scan.objects.all()
+        most_recent_session_prior_to_target_datetime = (
+            Scan.objects.filter(datetime__lte=end_date)
+            .order_by("-datetime")
+            .first()
+            .session
+        )
+        qs = Scan.objects.filter(
+            scan__session=most_recent_session_prior_to_target_datetime
+        )
+        # qs = Scan.objects.all()
         if receivers:
             print(f"Filtering by {receivers=}")
             qs = qs.filter(frontend__name__in=receivers)
@@ -87,12 +96,25 @@ class Window(QtWidgets.QWidget):
         return qs
 
     def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
+        most_recent_session_prior_to_target_datetime = (
+            Scan.objects.filter(datetime__lte=end_date)
+            .order_by("-datetime")
+            .first()
+            .datetime
+        )
+        # qs = Frequency.objects.filter(scan__session=most_recent_session_prior_to_target_datetime)
         qs = Frequency.objects.all()
         if receivers:
             print(f"Filtering by {receivers=}")
             qs = qs.filter(scan__frontend__name__in=receivers)
 
         if start_date:
+            # if there is no data shift the range to a month with the most recent data
+            if start_date > most_recent_session_prior_to_target_datetime:
+                start_date = (
+                    most_recent_session_prior_to_target_datetime - self.MAX_TIME_RANGE
+                )
+                end_date = most_recent_session_prior_to_target_datetime
             print(f"Filtering by {start_date=}")
             qs = qs.filter(scan__datetime__gte=start_date)
 
@@ -127,8 +149,8 @@ class Window(QtWidgets.QWidget):
         receivers = [i.text() for i in self.receivers.selectedItems()]
         end_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
         start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        if (end_date - start_date) > MAX_TIME_RANGE:
-            start_date = end_date - MAX_TIME_RANGE
+        if (end_date - start_date) > self.MAX_TIME_RANGE:
+            start_date = end_date - self.MAX_TIME_RANGE
 
         try:
             start_frequency = float(self.start_frequency.text())
