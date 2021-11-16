@@ -11,60 +11,50 @@ django.setup()
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytz
+from astropy.time import Time
 from PyQt5 import QtGui, QtWidgets
+from PyQt5.Qt import QMainWindow
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.uic import loadUiType
 
 from rfi.models import Frequency, Frontend, Scan
 
+# add .Ui file path here
+qtCreatorFile = (
+    "/home/sandboxes/kpurcell/repos/RFI_GUI/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
+)
+Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
 
-class Window(QtWidgets.QWidget):
+
+class Window(QMainWindow, Ui_MainWindow):
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
-
-        self.form_groupbox = QtWidgets.QGroupBox("Info")
-        form = QtWidgets.QFormLayout()
+        # Set up the UI file
+        self.setupUi(self)
 
         self.MAX_TIME_RANGE = timedelta(days=30)
 
         # List of receivers
-        self.receivers = QtWidgets.QListWidget()
         self.receivers.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.receivers.addItems(list(Frontend.objects.values_list("name", flat=True)))
-        form.addRow(QtWidgets.QLabel("Receivers:"), self.receivers)
 
         # Start and Stop Date DateEdit widgets
-        self.start_date = QtWidgets.QDateEdit(calendarPopup=True)
-        self.start_date.setDate(datetime.today() - self.MAX_TIME_RANGE)
-        form.addRow(QtWidgets.QLabel("Start Date:"), self.start_date)
-
-        self.end_date = QtWidgets.QDateEdit(calendarPopup=True)
-        self.end_date.setDate(datetime.today())
-        form.addRow(QtWidgets.QLabel("End Date:"), self.end_date)
+        self.target_date.setDate(datetime.today())
 
         # Frequency Range
-        self.start_frequency = QtWidgets.QLineEdit(self)
         self.start_frequency.setValidator(QtGui.QDoubleValidator())
-        form.addRow(QtWidgets.QLabel("Start Freq. (MHz):"), self.start_frequency)
-
-        self.end_frequency = QtWidgets.QLineEdit(self)
         self.end_frequency.setValidator(QtGui.QDoubleValidator())
-        form.addRow(QtWidgets.QLabel("End Freq. (MHz):"), self.end_frequency)
-        self.form_groupbox.setLayout(form)
-
-        layout = QtWidgets.QVBoxLayout()
-        self.setLayout(layout)
-        layout.addWidget(self.form_groupbox)
 
         # Push Button to get data
-        self.plot_button = QtWidgets.QPushButton(self)
-        self.plot_button.setText("Plot")
-        layout.addWidget(self.plot_button)
         self.plot_button.clicked.connect(self.clicked)
 
-    def get_scans(
-        self, receivers, start_date, end_date, start_frequency, end_frequency
-    ):
+        # connect menus
+        self.actionQuit.triggered.connect(self.menuQuit)
+        self.actionAbout.triggered.connect(self.menuAbout)
+
+    def get_scans(self, receivers, target_date, start_frequency, end_frequency):
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=end_date)
+            Scan.objects.filter(datetime__lte=target_date)
             .order_by("-datetime")
             .first()
             .session
@@ -77,13 +67,13 @@ class Window(QtWidgets.QWidget):
             print(f"Filtering by {receivers=}")
             qs = qs.filter(frontend__name__in=receivers)
 
-        if start_date:
-            print(f"Filtering by {start_date=}")
-            qs = qs.filter(datetime__gte=start_date)
-
-        if end_date:
-            print(f"Filtering by {end_date=}")
-            qs = qs.filter(datetime__lte=end_date)
+        if target_date:
+            print(f"Filtering by {target_date=}")
+            print(
+                f"Starting from {(target_date-self.MAX_TIME_RANGE).date()=} to {target_date.date()=}"
+            )
+            qs = qs.filter(datetime__gte=target_date - self.MAX_TIME_RANGE)
+            qs = qs.filter(datetime__lte=target_date)
 
         if start_frequency:
             print(f"Filtering by {start_frequency=}")
@@ -95,12 +85,20 @@ class Window(QtWidgets.QWidget):
 
         return qs
 
-    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
+    def do_plot(self, receivers, target_date, start_frequency, end_frequency):
+        def make_mjd(times):
+            t = Time(times)
+            return t.mjd
+
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=end_date)
+            Scan.objects.filter(datetime__lte=target_date)
             .order_by("-datetime")
             .first()
             .datetime
+        )
+
+        print(
+            f"Most recent session date: {most_recent_session_prior_to_target_datetime.date()}"
         )
         # qs = Frequency.objects.filter(scan__session=most_recent_session_prior_to_target_datetime)
         qs = Frequency.objects.all()
@@ -108,19 +106,19 @@ class Window(QtWidgets.QWidget):
             print(f"Filtering by {receivers=}")
             qs = qs.filter(scan__frontend__name__in=receivers)
 
-        if start_date:
+        if target_date:
             # if there is no data shift the range to a month with the most recent data
-            if start_date > most_recent_session_prior_to_target_datetime:
-                start_date = (
-                    most_recent_session_prior_to_target_datetime - self.MAX_TIME_RANGE
-                )
-                end_date = most_recent_session_prior_to_target_datetime
-            print(f"Filtering by {start_date=}")
-            qs = qs.filter(scan__datetime__gte=start_date)
-
-        if end_date:
-            print(f"Filtering by {end_date=}")
-            qs = qs.filter(scan__datetime__lte=end_date)
+            if (
+                target_date - self.MAX_TIME_RANGE
+                > most_recent_session_prior_to_target_datetime
+            ):
+                target_date = most_recent_session_prior_to_target_datetime
+            print(f"Filtering by {target_date.date()=}")
+            print(
+                f"Starting from {(target_date-self.MAX_TIME_RANGE).date()} to {target_date.date()}"
+            )
+            qs = qs.filter(scan__datetime__gte=target_date - self.MAX_TIME_RANGE)
+            qs = qs.filter(scan__datetime__lte=target_date)
 
         if start_frequency:
             print(f"Filtering by {start_frequency=}")
@@ -131,12 +129,32 @@ class Window(QtWidgets.QWidget):
             qs = qs.filter(frequency__lte=end_frequency)
 
         data = pd.DataFrame(qs.values("frequency", "intensity"))
+        # times_mjd = make_mjd(pd.DataFrame(qs.values("scan__datetime")))
+
         if not data.empty:
-            plt.title("RFI Data Plot")
-            plt.xlabel("Frequency (MHZ)")
-            plt.ylabel("Intensity (Jy)")
-            plt.plot(data["frequency"], data["intensity"])
+            # Plot the 2D graph
+            plt.title("RFI Environment at Green Bank Observatory")
+            plt.xlabel("Frequency MHz")
+            plt.ylabel("Intensity Jy")
+            plt.plot(data["frequency"], data["intensity"], color="black", linewidth=0.5)
             plt.show()
+
+            # Plot the color map graph
+            """
+            fig = plt.figure()
+            ax=fig.gca()
+            im = ax.imshow((np.log(times_mjd), np.log(data['frequency']), np.log(data['intensity'])))
+            cbar = fig.colorbar(im)
+            cbar.set_label("log intensity")
+            plt.show()
+            """
+
+            # option to save the data from the plot
+            if self.saveData.isChecked():
+                self.save_file(
+                    pd.DataFrame(qs.values("scan__datetime", "frequency", "intensity"))
+                )
+
         else:
             QtWidgets.QMessageBox.information(
                 self,
@@ -145,12 +163,33 @@ class Window(QtWidgets.QWidget):
                 QtWidgets.QMessageBox.Ok,
             )
 
+    def save_file(self, data):
+        name, filetype = QFileDialog.getSaveFileName(
+            self, "Save File"
+        )  # get the name from fancy QFileDialog
+        if name:
+            # don't abort if user cancels save
+            data.to_csv(f"{name}.csv")
+            print(f"{name}.csv file was saved")
+
+    def menuAbout(self):
+        """Shows about message box."""
+        QMessageBox.about(
+            self,
+            "gbt_rfi_gui",
+            "gbt_rfi_gui information here",
+        )
+
+    def menuQuit(self):
+        """Method to handle the quit menu."""
+        print("Thanks for using the gbt_rfi_gui")
+        sys.exit()
+
     def clicked(self):
         receivers = [i.text() for i in self.receivers.selectedItems()]
-        end_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        if (end_date - start_date) > self.MAX_TIME_RANGE:
-            start_date = end_date - self.MAX_TIME_RANGE
+        target_date = (
+            self.target_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        )
 
         try:
             start_frequency = float(self.start_frequency.text())
@@ -166,8 +205,7 @@ class Window(QtWidgets.QWidget):
 
         self.do_plot(
             receivers=receivers,
-            start_date=start_date,
-            end_date=end_date,
+            target_date=target_date,
             start_frequency=start_frequency,
             end_frequency=end_frequency,
         )
