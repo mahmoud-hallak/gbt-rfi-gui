@@ -158,7 +158,9 @@ class Window(QMainWindow, Ui_MainWindow):
             plt.show()
 
             # Plot the color map graph, but only if there is more than one day with data
-            self.make_color_plot(data)
+            num_unique_days = len(data.scan__datetime.unique())
+            if num_unique_days > 1:
+                self.make_color_plot(data)
 
             # option to save the data from the plot
             if self.saveData.isChecked():
