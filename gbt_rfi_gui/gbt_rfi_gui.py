@@ -134,16 +134,16 @@ class Window(QMainWindow, Ui_MainWindow):
         # make a 3 column dataFrame for the data needed to plot
         data = pd.DataFrame(qs.values("frequency", "intensity", "scan__datetime"))
 
-        # make a new object with the average intensity for the 2D plot
-        mean_data_intens = data.groupby(["scan__datetime", "frequency"]).agg(
-            {"intensity": ["mean"]}
-        )
-        mean_data_intens.columns = ["intensity_mean"]
-        mean_data = mean_data_intens.reset_index()
-        # sort values with respect to x axis so the plot looks better, this has nothing to do with the data
-        mean_data.sort_values(by=["frequency"])
-
         if not data.empty:
+            # make a new object with the average intensity for the 2D plot
+            mean_data_intens = data.groupby(["scan__datetime", "frequency"]).agg(
+                {"intensity": ["mean"]}
+            )
+            mean_data_intens.columns = ["intensity_mean"]
+            mean_data = mean_data_intens.reset_index()
+            # sort values with respect to x axis so the plot looks better, this has nothing to do with the data
+            mean_data.sort_values(by=["frequency"])
+
             # Plot the 2D graph
             plt.figure(figsize=(9, 4))
             plt.title("Averaged RFI Environment at Green Bank Observatory")
