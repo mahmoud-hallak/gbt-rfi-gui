@@ -263,7 +263,6 @@ class Command(BaseCommand):
             progress.update(read_chunk_size)
 
     def handle(self, *args, **options):
-        tqdm.write("init")
         if options["sql"]:
             db_logging_on()
 
