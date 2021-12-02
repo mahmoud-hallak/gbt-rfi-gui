@@ -25,8 +25,8 @@ env = environ.Env(
     INTERNAL_IPS=(list, []),
     SENTRY_ENV=(str, f"{_user}_dev"),
 )
-_env_file_template_path = SETTINGS_DIR, "conf", ".env.template"
-_default_env_file_path = SETTINGS_DIR, "conf", ".env"
+_env_file_template_path = Path(SETTINGS_DIR, ".env.template")
+_default_env_file_path = Path(SETTINGS_DIR, ".env")
 _env_file_path = env.str("ENV_PATH", _default_env_file_path)
 if not Path(_env_file_path).exists():
     raise ValueError(
