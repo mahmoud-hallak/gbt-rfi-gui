@@ -113,7 +113,7 @@ def write_chunk(frequencies, batch_size, chunk_start):
 class Command(BaseCommand):
     help = "Ingest data from the 'old' RFI DB (legacy_rfi app) into the 'new' RFI DB (rfi app)"
     # Don't run Django's automated health checks on each execution
-    skip_checks = True
+    requires_system_checks = []
 
     def handle_row(self, row, rfi_data_path):
         """Handle a single row from MasterRfiCatalog.
