@@ -21,9 +21,7 @@ from PyQt5.uic import loadUiType
 from rfi.models import Frequency, Frontend, Scan
 
 # add .Ui file path here
-qtCreatorFile = (
-    "/home/sandboxes/kpurcell/repos/RFI_GUI/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
-)
+qtCreatorFile = "/home/gbt1/gbt_rfi_gui/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
 
 
