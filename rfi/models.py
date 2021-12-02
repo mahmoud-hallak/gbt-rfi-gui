@@ -112,9 +112,11 @@ class Frequency(models.Model):
         )
 
 
+# TODO: Prefix all names with /home/www.gb.nrao.edu/content/IPG/rfiarchive_files/GBTDataImages/
 # From column 'filename'
 class File(models.Model):
     name = models.TextField(unique=True, db_index=True)
+    path = models.TextField(unique=True, db_index=True)
 
     def __str__(self):
         return f"{self.name}"

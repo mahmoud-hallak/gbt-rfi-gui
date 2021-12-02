@@ -1,6 +1,11 @@
+"""Ingest RFI data from MasterRfiCatalog into the "new" RFI DB."""
+
 import logging
 import re
+import sys
+from pathlib import Path
 
+import pytz
 from tqdm import tqdm
 
 from django.core.management.base import BaseCommand
@@ -110,7 +115,7 @@ class Command(BaseCommand):
     # Don't run Django's automated health checks on each execution
     skip_checks = True
 
-    def handle_row(self, row):
+    def handle_row(self, row, rfi_data_path):
         """Handle a single row from MasterRfiCatalog.
 
         Each row represents information for a given frequency of a given
@@ -129,7 +134,14 @@ class Command(BaseCommand):
             printed_projects.add(project_name)
 
         project = ProjectCache.get_or_create(project_name, dict(name=project_name))
-        file = FileCache.get_or_create(row["filename"], dict(name=row["filename"]))
+        file_path = rfi_data_path / row["filename"]
+        if not file_path.exists():
+            raise AssertionError(
+                f"Uh oh, we expect all RFI data files to exist! Check {file_path}"
+            )
+        file = FileCache.get_or_create(
+            row["filename"], dict(name=row["filename"], path=str(file_path))
+        )
         session = SessionCache.get_or_create(
             full_session_name, dict(name=full_session_name, project=project, file=file)
         )
@@ -172,7 +184,7 @@ class Command(BaseCommand):
                 exposure=row["exposure"],
                 tsys=row["tsys"],
                 unit=row["units"],
-                datetime=mjd_to_datetime(row["mjd"]),
+                datetime=mjd_to_datetime(row["mjd"]).replace(tzinfo=pytz.UTC),
             ),
         )
         if not str(row["window"]).isnumeric():
@@ -197,6 +209,12 @@ class Command(BaseCommand):
             help="Limit the number of rows that are processed",
         )
         parser.add_argument(
+            "--full",
+            action="store_true",
+            help="To do a full re-ingestion, use this option. "
+            "You will get integrity errors if you use this on a non-empty rfi_query DB",
+        )
+        parser.add_argument(
             "--offset",
             type=int,
             help="Offset the start row",
@@ -215,19 +233,30 @@ class Command(BaseCommand):
             help="Set the size of each chunk that is written to 'new' DB",
             default=20000,
         )
+        parser.add_argument(
+            "--rfi-data-path",
+            help="The path to the directory holding our GBT data files",
+            default="/home/www.gb.nrao.edu/content/IPG/rfiarchive_files/GBTDataImages/",
+        )
         parser.add_argument("--sql", action="store_true", help="Print all SQL queries")
         parser.add_argument(
             "--no-progress", action="store_true", help="Don't show progress bars"
         )
 
     def handle_rows(
-        self, rows, num_rows, read_chunk_size, write_chunk_size, progress=False
+        self,
+        rows,
+        num_rows,
+        read_chunk_size,
+        write_chunk_size,
+        rfi_data_path,
+        progress=False,
     ):
         progress = tqdm(total=num_rows, unit="row", smoothing=0, disable=not progress)
         for chunk_start in range(0, num_rows, read_chunk_size):
             frequencies = []
             for row in rows[chunk_start : chunk_start + read_chunk_size]:
-                frequencies.append(self.handle_row(row))
+                frequencies.append(self.handle_row(row, rfi_data_path))
                 # progress.update()
 
             write_chunk(frequencies, write_chunk_size, chunk_start)
@@ -238,10 +267,29 @@ class Command(BaseCommand):
         if options["sql"]:
             db_logging_on()
 
+        if options["full"]:
+            source_rows = MasterRfiCatalog.objects.all()
+        else:
+            new_mjds = set(
+                MasterRfiCatalog.objects.values_list("mjd", flat=True).distinct()
+            ).difference(set(Scan.objects.values_list("mjd", flat=True).distinct()))
+            if not new_mjds:
+                print(
+                    "There are no new scans since last execution; exiting (no changes made)"
+                )
+                sys.exit(0)
+
+            print(
+                f"There are {len(new_mjds)} new scans since we last ran; continuing with ingestion"
+            )
+            source_rows = MasterRfiCatalog.objects.filter(mjd__in=new_mjds)
+
+        if options["limit"]:
+            source_rows = source_rows[: options["limit"]]
         read_chunk_size = options["read_chunk_size"]
         write_chunk_size = options["write_chunk_size"]
         # Get out only the values we need
-        rows = MasterRfiCatalog.objects.values(
+        rows = source_rows.values(
             "azimuth_deg",
             "backend",
             "channel",
@@ -272,12 +320,14 @@ class Command(BaseCommand):
         tqdm.write(
             f"Fetching {num_rows} rows from MasterRfiCatalog in chunks of {read_chunk_size}"
         )
+        rfi_data_path = Path(options["rfi_data_path"])
         self.handle_rows(
-            rows,
-            num_rows,
-            read_chunk_size,
-            write_chunk_size,
-            not options["no_progress"],
+            rows=rows,
+            num_rows=num_rows,
+            read_chunk_size=read_chunk_size,
+            write_chunk_size=write_chunk_size,
+            rfi_data_path=rfi_data_path,
+            progress=not options["no_progress"],
         )
 
         print(BackendCache)

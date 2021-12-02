@@ -1,11 +1,31 @@
 from time import perf_counter
 
-
 from django.db import connection
 
-from tqdm import tqdm
 
 class ModelCache:
+    """Cache results of Django's get_or_create in memory.
+
+    Use case: when doing large numbers of get_or_create calls, there is a huge
+    amount of overhead, since we have to do a DB query for every single call.
+
+    In situations where we expect significant numbers of our get_or_creates to _only get_
+    (not create), we can drastically reduce this overhead by caching the results of every
+    get_or_create in a dictionary (ModelCache._cache)
+
+    So, the algorithm is:
+
+    1. If `key` is in `self._cache`, return its associated model instance
+    2. If not, call `model_class.objects.get_or_create`. This willand:
+        1. Create the instance if needed
+        2. Cache the instance in `self._cache`
+        3. Return the model instance
+
+    Note that the actual code is a bit more complicated, since we also support
+    using different `create_kwargs` than `get_kwargs`(something Django's
+    get_or_create does _not_ support)
+    """
+
     def __init__(self, model_class, initial_cache=None):
         self.model_class = model_class
 
@@ -50,8 +70,6 @@ class ModelCache:
             f"{self.model_class.__name__} Cache ({len(self._cache)} items; "
             f"{self.hits} hits; {self.misses} misses)"
         )
-
-
 
 
 class Benchmark:
