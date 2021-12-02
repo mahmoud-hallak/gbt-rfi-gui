@@ -14,6 +14,10 @@ from pathlib import Path
 
 import environ
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+SETTINGS_DIR = Path(__file__).resolve().parent
+
 _user = getuser()
 env = environ.Env(
     DEBUG=(bool, True),
@@ -21,10 +25,10 @@ env = environ.Env(
     INTERNAL_IPS=(list, []),
     SENTRY_ENV=(str, f"{_user}_dev"),
 )
-_env_file_template_path = os.path.join(SETTINGS_DIR, "conf", ".env.template")
-_default_env_file_path = os.path.join(SETTINGS_DIR, "conf", ".env")
+_env_file_template_path = SETTINGS_DIR, "conf", ".env.template"
+_default_env_file_path = SETTINGS_DIR, "conf", ".env"
 _env_file_path = env.str("ENV_PATH", _default_env_file_path)
-if not os.path.exists(_env_file_path):
+if not Path(_env_file_path).exists():
     raise ValueError(
         f"You must create a .env file at {_default_env_file_path} "
         f"(use {_env_file_template_path} as a template), "
@@ -39,9 +43,6 @@ except PermissionError as error:
         "if this is in error"
     ) from error
 environ.Env.read_env(_env_file_path)
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
