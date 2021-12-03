@@ -94,7 +94,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def do_plot(self, receivers, target_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=target_date, )
+            Scan.objects.filter(datetime__lte=target_date, frontend__name__in=receivers)
             .order_by("-datetime")
             .first()
             .datetime
