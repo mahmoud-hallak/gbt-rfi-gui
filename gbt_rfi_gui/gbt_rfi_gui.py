@@ -36,7 +36,10 @@ class Window(QMainWindow, Ui_MainWindow):
 
         # List of receivers
         self.receivers.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.receivers.addItems(list(Frontend.objects.values_list("name", flat=True)))
+        # recievers need to be in a sorted list
+        rcvrs = ['Prime Focus 1', 'Rcvr_800', 'Prime Focus 2', 'Rcvr1_2', 'Rcvr2_3', 'Rcvr4_6', 
+                 'Rcvr8_10', 'Rcvr12_18', 'RcvrArray18_26', 'Rcvr26_40', 'Rcvr40_52']
+        self.receivers.addItems(rcvrs)
 
         # Start and Stop Date DateEdit widgets
         self.target_date.setDate(datetime.datetime.today())
@@ -91,7 +94,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def do_plot(self, receivers, target_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=target_date)
+            Scan.objects.filter(datetime__lte=target_date, )
             .order_by("-datetime")
             .first()
             .datetime
