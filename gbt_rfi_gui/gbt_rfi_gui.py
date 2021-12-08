@@ -18,10 +18,12 @@ from PyQt5.Qt import QMainWindow
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.uic import loadUiType
 
-from rfi.models import Frequency, Frontend, Scan
+from rfi.models import Frequency, Scan
 
 # add .Ui file path here
-qtCreatorFile = "/home/gbt1/gbt_rfi_gui/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
+qtCreatorFile = (
+    "/home/sandboxes/kpurcell/repos/RFI_GUI/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
+)
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
 
 
@@ -37,12 +39,28 @@ class Window(QMainWindow, Ui_MainWindow):
         # List of receivers
         self.receivers.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         # recievers need to be in a sorted list
-        rcvrs = ['Prime Focus 1', 'Rcvr_800', 'Prime Focus 2', 'Rcvr1_2', 'Rcvr2_3', 'Rcvr4_6', 
-                 'Rcvr8_10', 'Rcvr12_18', 'RcvrArray18_26', 'Rcvr26_40', 'Rcvr40_52']
+        rcvrs = [
+            "Prime Focus 1",
+            "Rcvr_800",
+            "Prime Focus 2",
+            "Rcvr1_2",
+            "Rcvr2_3",
+            "Rcvr4_6",
+            "Rcvr8_10",
+            "Rcvr12_18",
+            "RcvrArray18_26",
+            "Rcvr26_40",
+            "Rcvr40_52",
+        ]
         self.receivers.addItems(rcvrs)
 
         # Start and Stop Date DateEdit widgets
-        self.target_date.setDate(datetime.datetime.today())
+        self.start_date.setDate(datetime.datetime.today())
+        self.end_date.setDate(datetime.datetime.today() - self.MAX_TIME_RANGE)
+        # don't let the user pick anything over 1 year away from the start_date
+        self.start_date.dateChanged.connect(self.setEndDate)
+        # change date when checkbox is clicked
+        self.useRange.stateChanged.connect(self.use_recc_range)
 
         # Frequency Range
         self.start_frequency.setValidator(QtGui.QDoubleValidator())
@@ -55,10 +73,12 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionQuit.triggered.connect(self.menuQuit)
         self.actionAbout.triggered.connect(self.menuAbout)
 
-    def get_scans(self, receivers, target_date, start_frequency, end_frequency):
+    def get_scans(
+        self, receivers, start_date, end_date, start_frequency, end_frequency
+    ):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=target_date)
+            Scan.objects.filter(datetime__lte=start_date)
             .order_by("-datetime")
             .first()
             .session
@@ -73,13 +93,15 @@ class Window(QMainWindow, Ui_MainWindow):
             print(f"Filtering by {receivers=}")
             qs = qs.filter(frontend__name__in=receivers)
 
-        if target_date:
-            print(f"Filtering by {target_date=}")
-            print(
-                f"Starting from {(target_date-self.MAX_TIME_RANGE).date()=} to {target_date.date()=}"
-            )
-            qs = qs.filter(datetime__gte=target_date - self.MAX_TIME_RANGE)
-            qs = qs.filter(datetime__lte=target_date)
+        if start_date:
+            print(f"Filtering by {start_date=}")
+            print(f"Starting from {start_date.date()}")
+            qs = qs.filter(datetime__lte=start_date)
+
+        if end_date:
+            print(f"Filtering by {end_date=}")
+            print(f" to {end_date.date()}")
+            qs = qs.filter(datetime__gte=end_date)
 
         if start_frequency:
             print(f"Filtering by {start_frequency=}")
@@ -91,10 +113,10 @@ class Window(QMainWindow, Ui_MainWindow):
 
         return qs
 
-    def do_plot(self, receivers, target_date, start_frequency, end_frequency):
+    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=target_date, frontend__name__in=receivers)
+            Scan.objects.filter(datetime__lte=start_date, frontend__name__in=receivers)
             .order_by("-datetime")
             .first()
             .datetime
@@ -110,19 +132,25 @@ class Window(QMainWindow, Ui_MainWindow):
             print(f"Filtering by {receivers=}")
             qs = qs.filter(scan__frontend__name__in=receivers)
 
-        if target_date:
+        if start_date:
             # if there is no data shift the range to a month with the most recent data
-            if (
-                target_date - self.MAX_TIME_RANGE
-                > most_recent_session_prior_to_target_datetime
-            ):
-                target_date = most_recent_session_prior_to_target_datetime
-            print(f"Filtering by {target_date.date()=}")
-            print(
-                f"Starting from {(target_date-self.MAX_TIME_RANGE).date()} to {target_date.date()}"
-            )
-            qs = qs.filter(scan__datetime__gte=target_date - self.MAX_TIME_RANGE)
-            qs = qs.filter(scan__datetime__lte=target_date)
+            if end_date > most_recent_session_prior_to_target_datetime:
+                start_date = most_recent_session_prior_to_target_datetime
+            print(f"Filtering by {start_date.date()=}")
+            print(f"Starting from {start_date.date()}")
+            qs = qs.filter(scan__datetime__lte=start_date)
+
+        if end_date:
+            # account for the user using the recommend time range
+            if self.useRange.isChecked():
+                end_date = start_date - self.MAX_TIME_RANGE
+            # account for shifting the start date past end date via most recent scan
+            if start_date < end_date:
+                end_date = start_date - self.MAX_TIME_RANGE
+
+            print(f"Filtering by {end_date.date()=}")
+            print(f" to {end_date.date()}")
+            qs = qs.filter(scan__datetime__gte=end_date)
 
         if start_frequency:
             print(f"Filtering by {start_frequency=}")
@@ -145,10 +173,22 @@ class Window(QMainWindow, Ui_MainWindow):
             # sort values with respect to x axis so the plot looks better, this has nothing to do with the data
             mean_data.sort_values(by=["frequency"])
 
+            # generate the description fro the plot
+            txt = f" \
+            Your data summary for this plot: \n \
+            Receiver : {receivers[0]} \n \
+            Date range : {start_date.date()} to {end_date.date()} \n \
+            Frequency Range : {mean_data['frequency'].max()}MHz to {mean_data['frequency'].min()}MHz "
+            # title = "Averaged RFI Environment at Green Bank Observatory"
+
             # Plot the 2D graph
             plt.figure(figsize=(9, 4))
-            plt.title("Averaged RFI Environment at Green Bank Observatory")
+            # plt.title(f"\033[1m{title}\033[0m \n {txt}", y=.1, fontsize=10)
+            plt.title(txt, fontsize=8)
+            plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
             plt.xlabel("Frequency MHz")
+            # plt.xlabel(f'Frequency MHz \n\n {txt}')
+            # plt.figtext(.5, .01, txt, ha='center', bbox={"facecolor":"orange", "alpha":0.5, "pad":5})
             plt.ylabel("Average Intensity Jy")
             plt.plot(
                 mean_data["frequency"],
@@ -156,6 +196,8 @@ class Window(QMainWindow, Ui_MainWindow):
                 color="black",
                 linewidth=0.5,
             )
+            # make sure the titles align correctly
+            plt.tight_layout()
             plt.show()
 
             # Plot the color map graph, but only if there is more than one day with data
@@ -246,11 +288,32 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Thanks for using the gbt_rfi_gui")
         sys.exit()
 
+    def setEndDate(self):
+        # don't let the user pick anything over 1 year away from the start_date
+        max_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        one_year = datetime.timedelta(days=365)
+        self.end_date.setMinimumDate(max_date - one_year)
+        self.end_date.setMaximumDate(max_date)
+        # account for the user using the recommend time range
+        if self.useRange.isChecked():
+            self.use_recc_range()
+
+    def use_recc_range(self):
+        # only want to change the value if the box is checked
+        max_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        if self.useRange.isChecked():
+            self.end_date.setDate(max_date - self.MAX_TIME_RANGE)
+            self.end_date.setMinimumDate(max_date + self.MAX_TIME_RANGE)
+            self.end_date.setMaximumDate(max_date - self.MAX_TIME_RANGE)
+
     def clicked(self):
         receivers = [i.text() for i in self.receivers.selectedItems()]
-        target_date = (
-            self.target_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        )
+        # account for the user not selecting a rcvr
+        if len(receivers) == 0:
+            receivers = ["Prime Focus 1"]
+
+        start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        end_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
 
         try:
             start_frequency = float(self.start_frequency.text())
@@ -266,7 +329,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.do_plot(
             receivers=receivers,
-            target_date=target_date,
+            start_date=start_date,
+            end_date=end_date,
             start_frequency=start_frequency,
             end_frequency=end_frequency,
         )
