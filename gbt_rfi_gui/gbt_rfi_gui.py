@@ -164,42 +164,15 @@ class Window(QMainWindow, Ui_MainWindow):
         data = pd.DataFrame(qs.values("frequency", "intensity", "scan__datetime"))
 
         if not data.empty:
-            # make a new object with the average intensity for the 2D plot
-            mean_data_intens = data.groupby(["scan__datetime", "frequency"]).agg(
-                {"intensity": ["mean"]}
+            self.make_plot(
+                self,
+                receivers,
+                data,
+                start_date,
+                end_date,
+                start_frequency,
+                end_frequency,
             )
-            mean_data_intens.columns = ["intensity_mean"]
-            mean_data = mean_data_intens.reset_index()
-            # sort values with respect to x axis so the plot looks better, this has nothing to do with the data
-            mean_data.sort_values(by=["frequency"])
-
-            # generate the description fro the plot
-            txt = f" \
-            Your data summary for this plot: \n \
-            Receiver : {receivers[0]} \n \
-            Date range : {start_date.date()} to {end_date.date()} \n \
-            Frequency Range : {mean_data['frequency'].max()}MHz to {mean_data['frequency'].min()}MHz "
-            # title = "Averaged RFI Environment at Green Bank Observatory"
-
-            # Plot the 2D graph
-            plt.figure(figsize=(9, 4))
-            # plt.title(f"\033[1m{title}\033[0m \n {txt}", y=.1, fontsize=10)
-            plt.title(txt, fontsize=8)
-            plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
-            plt.xlabel("Frequency MHz")
-            # plt.xlabel(f'Frequency MHz \n\n {txt}')
-            # plt.figtext(.5, .01, txt, ha='center', bbox={"facecolor":"orange", "alpha":0.5, "pad":5})
-            plt.ylabel("Average Intensity Jy")
-            plt.plot(
-                mean_data["frequency"],
-                mean_data["intensity_mean"],
-                color="black",
-                linewidth=0.5,
-            )
-            # make sure the titles align correctly
-            plt.tight_layout()
-            plt.show()
-
             # Plot the color map graph, but only if there is more than one day with data
             num_unique_days = len(data.scan__datetime.unique())
             if num_unique_days > 1:
@@ -218,6 +191,41 @@ class Window(QMainWindow, Ui_MainWindow):
                 "There is no data for the given filters",
                 QtWidgets.QMessageBox.Ok,
             )
+
+    def make_plot(
+        self, receivers, data, start_date, end_date, start_frequency, end_frequency
+    ):
+        # make a new object with the average intensity for the 2D plot
+        mean_data_intens = data.groupby(["scan__datetime", "frequency"]).agg(
+            {"intensity": ["mean"]}
+        )
+        mean_data_intens.columns = ["intensity_mean"]
+        mean_data = mean_data_intens.reset_index()
+        # sort values with respect to x axis so the plot looks better, this has nothing to do with the data
+        mean_data.sort_values(by=["frequency"])
+
+        # generate the description fro the plot
+        txt = f" \
+            Your data summary for this plot: \n \
+            Receiver : {receivers[0]} \n \
+            Date range : {start_date.date()} to {end_date.date()} \n \
+            Frequency Range : {mean_data['frequency'].max()}MHz to {mean_data['frequency'].min()}MHz "
+
+        # Plot the 2D graph
+        plt.figure(figsize=(9, 4))
+        plt.title(txt, fontsize=8)
+        plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
+        plt.xlabel("Frequency MHz")
+        plt.ylabel("Average Intensity Jy")
+        plt.plot(
+            mean_data["frequency"],
+            mean_data["intensity_mean"],
+            color="black",
+            linewidth=0.5,
+        )
+        # make sure the titles align correctly
+        plt.tight_layout()
+        plt.show()
 
     def make_color_plot(self, data):
         freq_bins = np.arange(data["frequency"].min(), data["frequency"].max(), 1.0)
