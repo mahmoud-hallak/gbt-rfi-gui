@@ -22,7 +22,7 @@ from rfi.models import Frequency, Scan
 
 # add .Ui file path here
 qtCreatorFile = (
-    "/home/gbt1/gbt_rfi_gui/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
+    "/home/sandboxes/kpurcell/repos/RFI_GUI/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
 )
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
 
