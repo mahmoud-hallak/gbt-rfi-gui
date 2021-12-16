@@ -32,6 +32,7 @@ class Window(QMainWindow, Ui_MainWindow):
         QtWidgets.QWidget.__init__(self)
         # Set up the UI file
         self.setupUi(self)
+        self.setGeometry(0, 0, 449, 456)
 
         # to protect teh database use only a time range of 30 days
         self.Mth_RANGE = datetime.timedelta(days=30)
@@ -217,6 +218,12 @@ class Window(QMainWindow, Ui_MainWindow):
         )
         # make sure the titles align correctly
         plt.tight_layout()
+        # settign the location of the window
+        mngr = plt.get_current_fig_manager()
+        geom = mngr.window.geometry()
+        x, y, dx, dy = geom.getRect()
+        # display the plot to the right of the ui
+        mngr.window.setGeometry(459, 0, dx, dy)
         plt.show()
 
     def make_color_plot(self, data, unique_days):
@@ -293,6 +300,13 @@ class Window(QMainWindow, Ui_MainWindow):
         fig.text(0.01, 0.5, "Session Dates", va="center", rotation="vertical")
         cbar.set_label("log(flux) [Jy]")
         plt.suptitle("RFI Environment at Green Bank Observatory per Session")
+
+        # settign the location of the window
+        mngr = plt.get_current_fig_manager()
+        geom = mngr.window.geometry()
+        x, y, dx, dy = geom.getRect()
+        # display the plot under the ui
+        mngr.window.setGeometry(0, 456, dx, dy)
 
         plt.show()
 
