@@ -22,7 +22,7 @@ from rfi.models import Frequency, Scan
 
 # add .Ui file path here
 qtCreatorFile = (
-    "/home/sandboxes/kpurcell/repos/RFI_GUI/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
+    "/home/gbt1/gbt_rfi_gui/gbt_rfi_query/gbt_rfi_gui/RFI_GUI.ui"
 )
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
 
@@ -165,7 +165,6 @@ class Window(QMainWindow, Ui_MainWindow):
 
         if not data.empty:
             self.make_plot(
-                self,
                 receivers,
                 data,
                 start_date,
