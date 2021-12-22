@@ -201,8 +201,8 @@ class Window(QMainWindow, Ui_MainWindow):
         txt = f" \
             Your data summary for this plot: \n \
             Receiver : {receivers[0]} \n \
-            Date range : {target_date.date()} to {end_date.date()} \n \
-            Frequency Range : {mean_data['frequency'].max()}MHz to {mean_data['frequency'].min()}MHz "
+            Date range : From {end_date.date()} to {target_date.date()} \n \
+            Frequency Range : {mean_data['frequency'].min()}MHz to {mean_data['frequency'].max()}MHz "
 
         # Plot the 2D graph
         plt.figure(figsize=(9, 4))
