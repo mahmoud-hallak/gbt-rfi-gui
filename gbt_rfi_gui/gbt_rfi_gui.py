@@ -234,12 +234,17 @@ class Window(QMainWindow, Ui_MainWindow):
         session = 0
         for ax in axes:
             # make a new range of dates based on the session of interest
-            date_of_interest_datetime = data.scan__datetime.unique()[
+            date_of_interest = data.scan__datetime  # get the dates
+            date_of_interest_sorted = (
+                date_of_interest.sort_values()
+            )  # sort for the plot
+            date_of_interest_datetime = date_of_interest_sorted.unique()[
                 session
-            ].to_pydatetime()
+            ].to_pydatetime()  # get one day and convert to pyDatetime
+
             unique_date_range = data[
                 data["scan__datetime"] == date_of_interest_datetime
-            ]
+            ]  # get the data but only for one session of interest at a time
 
             # make the date bins for plotting
             widen = datetime.timedelta(hours=1)
