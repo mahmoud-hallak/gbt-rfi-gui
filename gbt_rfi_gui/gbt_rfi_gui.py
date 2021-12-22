@@ -34,7 +34,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setGeometry(0, 0, 449, 456)
 
-        # to protect teh database use only a time range of 30 days
+        # to protect the database, restrict time ranges
         self.Mth_RANGE = datetime.timedelta(days=30)
         self.Yr_RANGE = datetime.timedelta(days=365)
 
@@ -194,8 +194,8 @@ class Window(QMainWindow, Ui_MainWindow):
         )
         mean_data_intens.columns = ["intensity_mean"]
         mean_data = mean_data_intens.reset_index()
-        # sort values with respect to x axis so the plot looks better, this has nothing to do with the data
-        mean_data.sort_values(by=["frequency"])
+        # sort values so the plot looks better, this has nothing to do with the actual data
+        sorted_mean_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
         # generate the description fro the plot
         txt = f" \
@@ -211,14 +211,14 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.xlabel("Frequency MHz")
         plt.ylabel("Average Intensity Jy")
         plt.plot(
-            mean_data["frequency"],
-            mean_data["intensity_mean"],
+            sorted_mean_data["frequency"],
+            sorted_mean_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
         # make sure the titles align correctly
         plt.tight_layout()
-        # settign the location of the window
+        # setting the location of the window
         mngr = plt.get_current_fig_manager()
         geom = mngr.window.geometry()
         x, y, dx, dy = geom.getRect()
@@ -333,9 +333,10 @@ class Window(QMainWindow, Ui_MainWindow):
         sys.exit()
 
     def get_end_date(self, target_date):
-        if self.range_slider.value() == 1:
+        # default is 30 Days -- M for Month/30Days, Y for Year/365Days
+        if self.radioButtonM.isChecked():
             end_date = target_date - self.Mth_RANGE
-        else:
+        if self.radioButtonY.isChecked():
             end_date = target_date - self.Yr_RANGE
         return end_date
 
