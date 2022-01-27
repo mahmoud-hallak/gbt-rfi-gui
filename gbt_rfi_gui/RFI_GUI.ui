@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>552</width>
-    <height>619</height>
+    <height>631</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -31,7 +31,7 @@
     <property name="geometry">
      <rect>
       <x>340</x>
-      <y>515</y>
+      <y>540</y>
       <width>91</width>
       <height>31</height>
      </rect>
@@ -140,7 +140,7 @@
     <property name="geometry">
      <rect>
       <x>130</x>
-      <y>460</y>
+      <y>480</y>
       <width>311</width>
       <height>21</height>
      </rect>
@@ -155,14 +155,14 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If this button is selected data &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;365 days / 1 year prior &lt;/span&gt;to target date will be retreived&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Use   one  year  (365 day) range from start date</string>
+     <string>Use   one   year    (365 day) range from target date</string>
     </property>
    </widget>
    <widget class="QRadioButton" name="radioButtonM">
     <property name="geometry">
      <rect>
       <x>130</x>
-      <y>440</y>
+      <y>460</y>
       <width>311</width>
       <height>21</height>
      </rect>
@@ -177,7 +177,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If this button is selected data &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;30 days prior &lt;/span&gt;to target date will be retreived&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Use recommended 30 day range from start date</string>
+     <string>Use recommended 30 day range from target date</string>
     </property>
     <property name="checked">
      <bool>true</bool>
@@ -245,7 +245,7 @@
     <property name="geometry">
      <rect>
       <x>140</x>
-      <y>500</y>
+      <y>520</y>
       <width>191</width>
       <height>61</height>
      </rect>
@@ -329,6 +329,31 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="radioButtonD">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>440</y>
+      <width>321</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Utopia</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If this button is selected only data from the target date will be retreived&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Use only target date</string>
+    </property>
+    <property name="checked">
+     <bool>false</bool>
     </property>
    </widget>
   </widget>

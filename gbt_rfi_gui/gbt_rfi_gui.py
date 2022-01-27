@@ -35,6 +35,7 @@ class Window(QMainWindow, Ui_MainWindow):
         # self.setGeometry(0, 0, 449, 456)
 
         # to protect the database, restrict time ranges
+        self.Day_RANGE = datetime.timedelta(days=1)
         self.Mth_RANGE = datetime.timedelta(days=30)
         self.Yr_RANGE = datetime.timedelta(days=365)
 
@@ -128,7 +129,7 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(scan__frontend__name__in=receivers)
 
         if target_date:
-            end_date = self.get_end_date(target_date)
+            target_date, end_date = self.get_end_date(target_date)
             if end_date > most_recent_session_prior_to_target_datetime:
                 QtWidgets.QMessageBox.information(
                     self,
@@ -137,7 +138,7 @@ class Window(QMainWindow, Ui_MainWindow):
                     QtWidgets.QMessageBox.Ok,
                 )
                 target_date = most_recent_session_prior_to_target_datetime
-                end_date = self.get_end_date(target_date)
+                target_date, end_date = self.get_end_date(target_date)
                 print(
                     "Your target date range holds no data -- Displaying a new range with the most recent session data"
                 )
@@ -346,12 +347,15 @@ class Window(QMainWindow, Ui_MainWindow):
         sys.exit()
 
     def get_end_date(self, target_date):
-        # default is 30 Days -- M for Month/30Days, Y for Year/365Days
+        # default is 1Day -- M for Month/30Days, Y for Year/365Days
+        if self.radioButtonD.isChecked():
+            end_date = target_date
+            target_date = target_date + self.Day_RANGE
         if self.radioButtonM.isChecked():
             end_date = target_date - self.Mth_RANGE
         if self.radioButtonY.isChecked():
             end_date = target_date - self.Yr_RANGE
-        return end_date
+        return target_date, end_date
 
     def clicked(self):
         receivers = [i.text() for i in self.receivers.selectedItems()]
