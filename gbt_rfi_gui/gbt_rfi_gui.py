@@ -32,7 +32,7 @@ class Window(QMainWindow, Ui_MainWindow):
         QtWidgets.QWidget.__init__(self)
         # Set up the UI file
         self.setupUi(self)
-        self.setGeometry(0, 0, 449, 456)
+        # self.setGeometry(0, 0, 449, 456)
 
         # to protect the database, restrict time ranges
         self.Mth_RANGE = datetime.timedelta(days=30)
@@ -328,8 +328,16 @@ class Window(QMainWindow, Ui_MainWindow):
         """Shows about message box."""
         QMessageBox.about(
             self,
-            "gbt_rfi_gui",
-            "gbt_rfi_gui information here",
+            "Automated RFI Scan Data Reduction GUI",
+            """This GUI provides reduced RFI scans. \n\n The plots provided
+             give the user a look at the frequency vs averaged intensity
+             of RFI scans averaged over a given time range. \n A color plot
+             of all sessions in a given time frame is provided for ranges
+             with more than one session. \n The full receiver bandwidth can
+             be viewed by selecting a receiver or a more specified bandwidth
+             can be selected by inputting a start and stop frequency. \n For
+             Prime Focus receivers, users should provide the frequency
+             range of the receiver.""",
         )
 
     def menuQuit(self):
