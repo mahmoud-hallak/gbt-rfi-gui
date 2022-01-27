@@ -131,16 +131,18 @@ class Window(QMainWindow, Ui_MainWindow):
         if target_date:
             target_date, end_date = self.get_end_date(target_date)
             if end_date > most_recent_session_prior_to_target_datetime:
+                target_date = most_recent_session_prior_to_target_datetime
+                target_date, end_date = self.get_end_date(target_date)
                 QtWidgets.QMessageBox.information(
                     self,
                     "No Data Found",
-                    "Your target date range holds no data \n Displaying a new range with the most recent session data",
+                    f"""Your target date range holds no data \n  Displaying a new range with the most recent session data \n New range is {end_date.date()} to {target_date.date()}""",
                     QtWidgets.QMessageBox.Ok,
                 )
-                target_date = most_recent_session_prior_to_target_datetime
-                target_date, end_date = self.get_end_date(target_date)
                 print(
-                    "Your target date range holds no data -- Displaying a new range with the most recent session data"
+                    f"""Your target date range holds no data --
+                     Displaying a new range with the most recent session data
+                     -- new range is {end_date} to {target_date}"""
                 )
             print(f"Filtering by {target_date=}")
             print(f"Starting from {target_date.date()} to {end_date.date()}")
