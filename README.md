@@ -6,3 +6,9 @@
 1. `cp rfi_query/.env.template rfi_query/.env`
 1. Modify the contents of this file to point to a "legacy" RFI DB and a "new" RFI DB
 1. Install this package in editable mode `pip install -e .`
+
+To update `requirements.txt`, make changes to `requirements.in`. Then:
+
+```sh
+pip-compile > requirements.txt
+```

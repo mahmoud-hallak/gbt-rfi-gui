@@ -15,10 +15,17 @@
             <label for="receivers" class="form-label">Receivers</label>
             <select name="receivers" id="receivers" class="form-select" multiple aria-label="multiple select example">
               {% for name, value in form.fields.receivers.choices %}
-                <option value="{{value}}">{{name}}</option>
+                <option value="{{value}}">{{value}}</option>
               {% endfor %}
             </select>
             <div id="receiversHelp" class="form-text">Receivers</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input name="date" id="date" type="text" class="form-control" placeholder="YYYY/mm/dd [HH:MM:SS]" id="date" aria-describedby="dateHelp">
+            <div id="dateHelp" class="form-text">Date (get nearest)</div>
           </div>
         </div>
         <div class="col">

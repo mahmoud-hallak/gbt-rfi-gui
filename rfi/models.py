@@ -14,6 +14,7 @@ class Frontend(models.Model):
     name = models.TextField(unique=True, db_index=True)
 
     def __str__(self):
+        
         return f"{self.name}"
 
 

@@ -34,6 +34,7 @@ setup(
         "PyQt5",
         # 2.9+ drop support for Postgres 9.6+
         "psycopg2<2.9",
+        "scipy",
     ],
     python_requires=">=3.6, <4",
     entry_points={
