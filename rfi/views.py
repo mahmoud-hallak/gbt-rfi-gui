@@ -161,8 +161,8 @@ def graph(request):
         intensity_peaks = find_peaks(freq_vs_intensity[:,1])[0]
         all_local_maximum_intensities = freq_vs_intensity[intensity_peaks]
         # NOTE: Can toggle this to make sure the shape stays the same
-        to_plot = freq_vs_intensity
-        # to_plot = all_local_maximum_intensities
+        # to_plot = freq_vs_intensity
+        to_plot = all_local_maximum_intensities
         print(f"Actual # {len(to_plot)}")
         graph = go.Scatter(
             x=to_plot[:,0],
