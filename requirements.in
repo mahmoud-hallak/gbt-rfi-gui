@@ -1,0 +1,13 @@
+django-crispy-forms<2
+django-environ
+django-extensions<3
+Django<4
+ipdb
+ipython
+matplotlib
+mysqlclient
+pandas
+pip-tools
+psycopg2<2.9
+PyQt5
+scipy
