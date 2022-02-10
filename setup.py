@@ -8,6 +8,8 @@ here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
+# Derive requirements from requirements.in, so they aren't duplicated
+requirements = (here / "requirements.in").read_text(encoding="utf-8").splitlines()
 
 # this will make a package of only the GUI directory
 #  as specified by the 'packages' keyword
@@ -22,21 +24,7 @@ setup(
     keywords="",
     packages=find_packages(),
     py_modules=["gbt_rfi_gui"],
-    install_requires=[
-        "Django<4",
-        "django-crispy-forms<2",
-        "django-environ",
-        "django-extensions<3",
-        "mysqlclient",
-        "ipdb",
-        "ipython",
-        "matplotlib",
-        "pandas",
-        "PyQt5",
-        # 2.9+ drop support for Postgres 9.6+
-        "psycopg2<2.9",
-        "scipy",
-    ],
+    install_requires=requirements,
     python_requires=">=3.6, <4",
     entry_points={
         "console_scripts": [
