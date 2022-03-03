@@ -308,7 +308,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         # set labels
         fig.text(0.5, 0.04, "Frequency (MHz)", ha="center")
-        fig.text(0.01, 0.5, "Session Dates", va="center", rotation="vertical")
+        fig.text(0.01, 0.5, "Session Dates (UTC)", va="center", rotation="vertical")
         cbar.set_label("log(flux) [Jy]")
         plt.suptitle("RFI Environment at Green Bank Observatory per Session")
 
