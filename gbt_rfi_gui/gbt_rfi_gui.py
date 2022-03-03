@@ -286,6 +286,7 @@ class Window(QMainWindow, Ui_MainWindow):
                 # there is only one date of interest per subplot so date extents are to artifically expanded
                 extent=(freqs[0], freqs[-1], date_extents[0] - 1, date_extents[-1] + 1),
                 interpolation="none",
+                cmap="viridis",
             )
 
             # only want the session for the ylabel
@@ -360,6 +361,12 @@ class Window(QMainWindow, Ui_MainWindow):
         return target_date, end_date
 
     def clicked(self):
+        # change the color so the user knows that it is plotting
+        self.plot_button.setStyleSheet("background-color : green")
+        self.plot_button.setText("Currently Plotting")
+        self.plot_button.setEnabled(False)
+        self.plot_button.repaint()
+
         receivers = [i.text() for i in self.receivers.selectedItems()]
         # account for the user not selecting a rcvr
         if len(receivers) == 0:
@@ -387,6 +394,11 @@ class Window(QMainWindow, Ui_MainWindow):
             start_frequency=start_frequency,
             end_frequency=end_frequency,
         )
+
+        # change the color so the user knows that it is done plotting
+        self.plot_button.setStyleSheet("background-color : rgb(229, 229, 229)")
+        self.plot_button.setText("Plot for these Args")
+        self.plot_button.setEnabled(True)
 
 
 def main():
