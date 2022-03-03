@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>602</width>
-    <height>647</height>
+    <height>605</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,7 +41,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>415</y>
+      <y>420</y>
       <width>91</width>
       <height>31</height>
      </rect>
@@ -53,7 +53,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Target Date</string>
+     <string>Start Date</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -82,7 +82,7 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QDateEdit" name="target_date">
+   <widget class="QDateEdit" name="start_date">
     <property name="geometry">
      <rect>
       <x>190</x>
@@ -98,7 +98,7 @@
      </font>
     </property>
     <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The date of interest. &lt;/p&gt;&lt;p&gt;If no data in specified time range, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;most recent session with data&lt;/span&gt; will be retreived and reduced&lt;/p&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;Target Date can be in past, present or future&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The start date of interest. &lt;/p&gt;&lt;p&gt;If no data in specified time range, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;most recent session with data&lt;/span&gt; will be retreived and reduced&lt;/p&gt;&lt;p&gt;Start Date can be in past, present or future&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="displayFormat">
      <string>yyyy/MM/dd</string>
@@ -110,8 +110,8 @@
    <widget class="QCheckBox" name="saveData">
     <property name="geometry">
      <rect>
-      <x>400</x>
-      <y>535</y>
+      <x>390</x>
+      <y>500</y>
       <width>101</width>
       <height>51</height>
      </rect>
@@ -130,61 +130,14 @@
 From Plot</string>
     </property>
    </widget>
-   <widget class="QRadioButton" name="radioButtonY">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>490</y>
-      <width>311</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>DejaVu Serif</family>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If this button is selected data &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;365 days / 1 year prior &lt;/span&gt;to target date will be retreived&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>Use   one   year    (365 day) range from target date</string>
-    </property>
-   </widget>
-   <widget class="QRadioButton" name="radioButtonM">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>470</y>
-      <width>311</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>DejaVu Serif</family>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If this button is selected data &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;30 days prior &lt;/span&gt;to target date will be retreived&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>Use recommended 30 day range from target date</string>
-    </property>
-    <property name="checked">
-     <bool>true</bool>
-    </property>
-   </widget>
    <widget class="QPushButton" name="plot_button">
     <property name="enabled">
      <bool>true</bool>
     </property>
     <property name="geometry">
      <rect>
-      <x>200</x>
-      <y>530</y>
+      <x>190</x>
+      <y>490</y>
       <width>191</width>
       <height>61</height>
      </rect>
@@ -332,31 +285,6 @@ From Plot</string>
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
-   <widget class="QRadioButton" name="radioButtonD">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>450</y>
-      <width>321</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>DejaVu Serif</family>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Use the date range to specify how far &lt;span style=&quot; font-weight:600;&quot;&gt;back in time &lt;/span&gt;from target date you are interested in retreiving data&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If this button is selected only data from the target date will be retreived&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>Use only target date</string>
-    </property>
-    <property name="checked">
-     <bool>false</bool>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
@@ -375,6 +303,53 @@ From Plot</string>
     <property name="text">
      <string>End Frequency
  (MHz)</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QDateEdit" name="end_date">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>452</y>
+      <width>291</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>DejaVu Serif</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The end date of interest. &lt;/p&gt;&lt;p&gt;If no data in specified time range, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;most recent session with data&lt;/span&gt; will be retreived and reduced - range length will be preserved&lt;/p&gt;&lt;p&gt;End Date must be prior to start date and can be no farther than one year away from start date&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="displayFormat">
+     <string>yyyy/MM/dd</string>
+    </property>
+    <property name="calendarPopup">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>450</y>
+      <width>91</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>DejaVu Serif</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>End Date</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
