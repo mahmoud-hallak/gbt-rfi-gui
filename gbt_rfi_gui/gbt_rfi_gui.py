@@ -171,8 +171,7 @@ class Window(QMainWindow, Ui_MainWindow):
             )
             # Plot the color map graph, but only if there is more than one day with data
             unique_days = data.scan__datetime.unique()
-            if len(unique_days) > 1:
-                self.make_color_plot(data, unique_days)
+            self.make_color_plot(data, unique_days)
 
             # option to save the data from the plot
             if self.saveData.isChecked():
@@ -233,6 +232,9 @@ class Window(QMainWindow, Ui_MainWindow):
         # set up the subplots
         number_of_subplots = len(unique_days)
         fig, axes = plt.subplots(number_of_subplots, 1, figsize=(10.5, 7), sharex=True)
+        # account for the single day plots
+        if number_of_subplots == 1:
+            axes = [axes]
 
         session = 0
         for ax in axes:
