@@ -57,6 +57,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         # Start and Stop Date DateEdit widgets
         self.start_date.setDate(datetime.datetime.today())
+        self.setEndDate()
         self.end_date.setDate(datetime.datetime.today() - datetime.timedelta(days=7))
         self.start_date.dateChanged.connect(self.setEndDate)
 
@@ -86,23 +87,23 @@ class Window(QMainWindow, Ui_MainWindow):
         )
 
         if receivers:
-            print(f"Filtering by {receivers=}")
+            # print(f"Filtering by {receivers=}")
             qs = qs.filter(frontend__name__in=receivers)
 
         if start_date:
-            print(f"Filtering by {start_date=}")
+            # print(f"Filtering by {start_date=}")
             qs = qs.filter(datetime__lte=start_date)
         if end_date:
-            print(f"Filtering by {end_date=}")
+            # print(f"Filtering by {end_date=}")
             qs = qs.filter(datetime__lte=end_date)
-            print(f"Starting from {start_date.date()} to {end_date.date()}")
+            # print(f"Starting from {start_date.date()} to {end_date.date()}")
 
         if start_frequency:
-            print(f"Filtering by {start_frequency=}")
+            # print(f"Filtering by {start_frequency=}")
             qs = qs.filter(frequency__frequency__gte=start_frequency)
 
         if end_frequency:
-            print(f"Filtering by {end_frequency=}")
+            # print(f"Filtering by {end_frequency=}")
             qs = qs.filter(frequency__frequency__lte=end_frequency)
 
         return qs
@@ -116,14 +117,14 @@ class Window(QMainWindow, Ui_MainWindow):
             .datetime
         )
 
-        print(
-            f"Most recent session date: {most_recent_session_prior_to_target_datetime.date()}"
-        )
+        # print(
+        #    f"Most recent session date: {most_recent_session_prior_to_target_datetime.date()}"
+        # )
 
         qs = Frequency.objects.all()
 
         if receivers:
-            print(f"Filtering by {receivers=}")
+            # print(f"Filtering by {receivers=}")
             qs = qs.filter(scan__frontend__name__in=receivers)
 
         if start_date:
@@ -137,28 +138,29 @@ class Window(QMainWindow, Ui_MainWindow):
                     f"""Your target date range holds no data \n  Displaying a new range with the most recent session data \n New range is {end_date.date()} to {start_date.date()}""",
                     QtWidgets.QMessageBox.Ok,
                 )
-                print(
-                    f"""Your target date range holds no data --
-                     Displaying a new range with the most recent session data
-                     -- new range is {end_date} to {start_date}"""
-                )
-            print(f"Filtering by {start_date=}")
-            print(f"Starting from {start_date.date()} to {end_date.date()}")
+                # print(
+                #    f"""Your target date range holds no data --
+                #     Displaying a new range with the most recent session data
+                #     -- new range is {end_date} to {start_date}"""
+                # )
+            # print(f"Filtering by {start_date=}")
+            # print(f"Starting from {start_date.date()} to {end_date.date()}")
             qs = qs.filter(scan__datetime__lte=start_date)
             qs = qs.filter(scan__datetime__gte=end_date)
 
         if start_frequency:
-            print(f"Filtering by {start_frequency=}")
+            # print(f"Filtering by {start_frequency=}")
             qs = qs.filter(frequency__gte=start_frequency)
 
         if end_frequency:
-            print(f"Filtering by {end_frequency=}")
+            # print(f"Filtering by {end_frequency=}")
             qs = qs.filter(frequency__lte=end_frequency)
 
         # make a 3 column dataFrame for the data needed to plot
         data = pd.DataFrame(qs.values("frequency", "intensity", "scan__datetime"))
 
         if not data.empty:
+
             self.make_plot(
                 receivers,
                 data,
@@ -169,7 +171,7 @@ class Window(QMainWindow, Ui_MainWindow):
             )
             # Plot the color map graph, but only if there is more than one day with data
             unique_days = data.scan__datetime.unique()
-            self.make_color_plot(data, unique_days)
+            self.make_color_plot(data, unique_days, receivers, start_date, end_date)
 
             # option to save the data from the plot
             if self.saveData.isChecked():
@@ -200,7 +202,7 @@ class Window(QMainWindow, Ui_MainWindow):
         # generate the description fro the plot
         txt = f" \
             Your data summary for this plot: \n \
-            Receiver : {receivers[0]} \n \
+            Receiver : {receivers} \n \
             Date range : From {end_date.date()} to {start_date.date()} \n \
             Frequency Range : {mean_data['frequency'].min()}MHz to {mean_data['frequency'].max()}MHz "
 
@@ -210,11 +212,12 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
         plt.xlabel("Frequency MHz")
         plt.ylabel("Average Intensity Jy")
+        plt.ylim(0, 10)
         plt.plot(
             sorted_mean_data["frequency"],
             sorted_mean_data["intensity_mean"],
             color="black",
-            linewidth=0.5,
+            linewidth=0.1,
         )
         # make sure the titles align correctly
         plt.tight_layout()
@@ -226,13 +229,20 @@ class Window(QMainWindow, Ui_MainWindow):
         mngr.window.setGeometry(459, 0, dx, dy)
         plt.show()
 
-    def make_color_plot(self, data, unique_days):
+    def make_color_plot(self, data, unique_days, receivers, start_date, end_date):
         # set up the subplots
         number_of_subplots = len(unique_days)
         fig, axes = plt.subplots(number_of_subplots, 1, figsize=(10.5, 7), sharex=True)
         # account for the single day plots
         if number_of_subplots == 1:
             axes = [axes]
+
+        # generate the description fro the plot
+        txt = f" \
+            Your data summary for this plot: \n \
+            Receiver : {receivers} \n \
+            Date range : From {end_date.date()} to {start_date.date()} \n \
+            Frequency Range : {data['frequency'].min()}MHz to {data['frequency'].max()}MHz "
 
         session = 0
         for ax in axes:
@@ -243,12 +253,12 @@ class Window(QMainWindow, Ui_MainWindow):
             )  # sort for the plot
             date_of_interest_datetime = date_of_interest_sorted.unique()[
                 session
-            ].to_pydatetime()  # get one day and convert to pyDatetime
+            ].to_pydatetime()
 
             unique_date_range = data[
                 data["scan__datetime"] == date_of_interest_datetime
             ]  # get the data but only for one session of interest at a time
-
+            date_of_interest_datetime = date_of_interest_datetime.replace(tzinfo=None)
             # make the date bins for plotting
             widen = datetime.timedelta(hours=1)
             date_bins = np.arange(
@@ -293,6 +303,9 @@ class Window(QMainWindow, Ui_MainWindow):
             ax.set_yticklabels([])
             ax.set_ylabel(str(date_of_interest_datetime.date()), rotation="horizontal")
             ax.yaxis.set_label_coords(-0.08, 0.5)
+
+            if session == 0:
+                ax.set_title(txt, fontsize=8)
 
             # increase the session index
             session = session + 1
@@ -346,7 +359,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def menuQuit(self):
         """Method to handle the quit menu."""
-        print("Thanks for using the gbt_rfi_gui")
+        print("Thanks for using the gbt_rfi_gui!")
         sys.exit()
 
     def setEndDate(self):
