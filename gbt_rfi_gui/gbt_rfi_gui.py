@@ -212,12 +212,12 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
         plt.xlabel("Frequency MHz")
         plt.ylabel("Average Intensity Jy")
-        plt.ylim(0, 10)
+        plt.ylim(-10, 500)
         plt.plot(
             sorted_mean_data["frequency"],
             sorted_mean_data["intensity_mean"],
             color="black",
-            linewidth=0.1,
+            linewidth=0.5,
         )
         # make sure the titles align correctly
         plt.tight_layout()
