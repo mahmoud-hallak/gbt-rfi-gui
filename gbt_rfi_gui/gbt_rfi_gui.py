@@ -42,24 +42,22 @@ class Window(QMainWindow, Ui_MainWindow):
         # recievers need to be in a sorted list
         rcvrs = [
             "Prime Focus 1",
-            "Rcvr_800",
-            "Prime Focus 2",
-            "Rcvr1_2",
-            "Rcvr2_3",
-            "Rcvr4_6",
-            "Rcvr8_10",
-            "Rcvr12_18",
-            "RcvrArray18_26",
-            "Rcvr26_40",
-            "Rcvr40_52",
+            "L-band",
+            "S-band",
+            "C-band",
+            "X-band",
+            "Ku-band",
+            "K-band FPA",
+            "Ka-band",
+            "Q-band",
         ]
         self.receivers.addItems(rcvrs)
 
         # Start and Stop Date DateEdit widgets
-        self.start_date.setDate(datetime.datetime.today())
+        self.end_date.setDate(datetime.datetime.today())
         self.setEndDate()
-        self.end_date.setDate(datetime.datetime.today() - datetime.timedelta(days=7))
-        self.start_date.dateChanged.connect(self.setEndDate)
+        self.start_date.setDate(datetime.datetime.today() - datetime.timedelta(days=7))
+        self.end_date.dateChanged.connect(self.setEndDate)
 
         # Frequency Range
         self.start_frequency.setValidator(QtGui.QDoubleValidator())
@@ -75,7 +73,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def get_scans(self, receivers, target_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=start_date)
+            Scan.objects.filter(datetime__lte=end_date)
             .order_by("-datetime")
             .first()
             .session
@@ -90,13 +88,13 @@ class Window(QMainWindow, Ui_MainWindow):
             # print(f"Filtering by {receivers=}")
             qs = qs.filter(frontend__name__in=receivers)
 
-        if start_date:
-            # print(f"Filtering by {start_date=}")
-            qs = qs.filter(datetime__lte=start_date)
         if end_date:
             # print(f"Filtering by {end_date=}")
             qs = qs.filter(datetime__lte=end_date)
-            # print(f"Starting from {start_date.date()} to {end_date.date()}")
+        if start_date:
+            # print(f"Filtering by {start_date=}")
+            qs = qs.filter(datetime__lte=start_date)
+            # print(f"Starting from {end_date.date()} to {start_date.date()}")
 
         if start_frequency:
             # print(f"Filtering by {start_frequency=}")
@@ -108,10 +106,10 @@ class Window(QMainWindow, Ui_MainWindow):
 
         return qs
 
-    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
+    def do_plot(self, receivers, end_date, start_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
-            Scan.objects.filter(datetime__lte=start_date, frontend__name__in=receivers)
+            Scan.objects.filter(datetime__lte=end_date, frontend__name__in=receivers)
             .order_by("-datetime")
             .first()
             .datetime
@@ -127,26 +125,26 @@ class Window(QMainWindow, Ui_MainWindow):
             # print(f"Filtering by {receivers=}")
             qs = qs.filter(scan__frontend__name__in=receivers)
 
-        if start_date:
-            if end_date > most_recent_session_prior_to_target_datetime:
-                difference = start_date - end_date
-                start_date = most_recent_session_prior_to_target_datetime
-                end_date = start_date - difference
+        if end_date:
+            if start_date > most_recent_session_prior_to_target_datetime:
+                difference = end_date - start_date
+                end_date = most_recent_session_prior_to_target_datetime
+                start_date = end_date - difference
                 QtWidgets.QMessageBox.information(
                     self,
                     "No Data Found",
-                    f"""Your target date range holds no data \n  Displaying a new range with the most recent session data \n New range is {end_date.date()} to {start_date.date()}""",
+                    f"""Your target date range holds no data \n  Displaying a new range with the most recent session data \n New range is {start_date.date()} to {end_date.date()}""",
                     QtWidgets.QMessageBox.Ok,
                 )
                 # print(
                 #    f"""Your target date range holds no data --
                 #     Displaying a new range with the most recent session data
-                #     -- new range is {end_date} to {start_date}"""
+                #     -- new range is {start_date} to {end_date}"""
                 # )
-            # print(f"Filtering by {start_date=}")
-            # print(f"Starting from {start_date.date()} to {end_date.date()}")
-            qs = qs.filter(scan__datetime__lte=start_date)
-            qs = qs.filter(scan__datetime__gte=end_date)
+            # print(f"Filtering by {end_date=}")
+            # print(f"Starting from {end_date.date()} to {start_date.date()}")
+            qs = qs.filter(scan__datetime__lte=end_date)
+            qs = qs.filter(scan__datetime__gte=start_date)
 
         if start_frequency:
             # print(f"Filtering by {start_frequency=}")
@@ -164,14 +162,14 @@ class Window(QMainWindow, Ui_MainWindow):
             self.make_plot(
                 receivers,
                 data,
-                start_date,
                 end_date,
+                start_date,
                 start_frequency,
                 end_frequency,
             )
             # Plot the color map graph, but only if there is more than one day with data
             unique_days = data.scan__datetime.unique()
-            self.make_color_plot(data, unique_days, receivers, start_date, end_date)
+            self.make_color_plot(data, unique_days, receivers, end_date, start_date)
 
             # option to save the data from the plot
             if self.saveData.isChecked():
@@ -188,7 +186,7 @@ class Window(QMainWindow, Ui_MainWindow):
             )
 
     def make_plot(
-        self, receivers, data, start_date, end_date, start_frequency, end_frequency
+        self, receivers, data, end_date, start_date, start_frequency, end_frequency
     ):
         # make a new object with the average intensity for the 2D plot
         mean_data_intens = data.groupby(["scan__datetime", "frequency"]).agg(
@@ -203,7 +201,7 @@ class Window(QMainWindow, Ui_MainWindow):
         txt = f" \
             Your data summary for this plot: \n \
             Receiver : {receivers} \n \
-            Date range : From {end_date.date()} to {start_date.date()} \n \
+            Date range : From {start_date.date()} to {end_date.date()} \n \
             Frequency Range : {mean_data['frequency'].min()}MHz to {mean_data['frequency'].max()}MHz "
 
         # Plot the 2D graph
@@ -229,7 +227,7 @@ class Window(QMainWindow, Ui_MainWindow):
         mngr.window.setGeometry(459, 0, dx, dy)
         plt.show()
 
-    def make_color_plot(self, data, unique_days, receivers, start_date, end_date):
+    def make_color_plot(self, data, unique_days, receivers, end_date, start_date):
         # set up the subplots
         number_of_subplots = len(unique_days)
         fig, axes = plt.subplots(number_of_subplots, 1, figsize=(10.5, 7), sharex=True)
@@ -241,7 +239,7 @@ class Window(QMainWindow, Ui_MainWindow):
         txt = f" \
             Your data summary for this plot: \n \
             Receiver : {receivers} \n \
-            Date range : From {end_date.date()} to {start_date.date()} \n \
+            Date range : From {start_date.date()} to {end_date.date()} \n \
             Frequency Range : {data['frequency'].min()}MHz to {data['frequency'].max()}MHz "
 
         session = 0
@@ -363,10 +361,10 @@ class Window(QMainWindow, Ui_MainWindow):
         sys.exit()
 
     def setEndDate(self):
-        # don't let the user pick anything over 1 year away from the start_date
-        max_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        self.end_date.setMinimumDate(max_date - self.MAX_TIME_RANGE)
-        self.end_date.setMaximumDate(max_date)
+        # don't let the user pick anything over 1 year away from the end_date
+        max_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        self.start_date.setMinimumDate(max_date - self.MAX_TIME_RANGE)
+        self.start_date.setMaximumDate(max_date)
 
     def clicked(self):
         # change the color so the user knows that it is plotting
@@ -375,13 +373,31 @@ class Window(QMainWindow, Ui_MainWindow):
         self.plot_button.setEnabled(False)
         self.plot_button.repaint()
 
-        receivers = [i.text() for i in self.receivers.selectedItems()]
+        rcvrs_dict = {
+            "Prime Focus 1": "Prime Focus 1",
+            "L-band": "Rcvr1_2",
+            "S-band": "Rcvr2_3",
+            "C-band": "Rcvr4_6",
+            "X-band": "Rcvr8_10",
+            "Ku-band": "Rcvr12_18",
+            "K-band FPA": "RcvrArray18_26",
+            "Ka-band": "Rcvr26_40",
+            "Q-band": "Rcvr40_52",
+        }
+
+        # import ipdb;ipdb.set_trace()
+
+        receivers_band = [i.text() for i in self.receivers.selectedItems()]
+        receivers = []
+        for rcvr in receivers_band:
+            receivers.append(rcvrs_dict[rcvr])
+
         # account for the user not selecting a rcvr
         if len(receivers) == 0:
             receivers = ["Prime Focus 1"]
 
-        start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
         end_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        start_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
 
         try:
             start_frequency = float(self.start_frequency.text())
@@ -397,8 +413,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.do_plot(
             receivers=receivers,
-            start_date=start_date,
             end_date=end_date,
+            start_date=start_date,
             start_frequency=start_frequency,
             end_frequency=end_frequency,
         )

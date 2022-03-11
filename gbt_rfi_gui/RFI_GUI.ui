@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>602</width>
-    <height>607</height>
+    <height>586</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,7 +41,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>420</y>
+      <y>400</y>
       <width>91</width>
       <height>31</height>
      </rect>
@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>420</y>
+      <y>400</y>
       <width>291</width>
       <height>26</height>
      </rect>
@@ -111,7 +111,7 @@
     <property name="geometry">
      <rect>
       <x>390</x>
-      <y>500</y>
+      <y>480</y>
       <width>101</width>
       <height>51</height>
      </rect>
@@ -137,7 +137,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>490</y>
+      <y>470</y>
       <width>191</width>
       <height>61</height>
      </rect>
@@ -162,7 +162,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>330</y>
+      <y>310</y>
       <width>291</width>
       <height>25</height>
      </rect>
@@ -205,7 +205,7 @@ From Plot</string>
       <x>190</x>
       <y>130</y>
       <width>291</width>
-      <height>191</height>
+      <height>161</height>
      </rect>
     </property>
     <property name="font">
@@ -225,7 +225,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>370</y>
+      <y>350</y>
       <width>291</width>
       <height>25</height>
      </rect>
@@ -244,7 +244,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>320</y>
+      <y>300</y>
       <width>111</width>
       <height>51</height>
      </rect>
@@ -289,7 +289,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>80</x>
-      <y>360</y>
+      <y>340</y>
       <width>101</width>
       <height>51</height>
      </rect>
@@ -312,7 +312,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>190</x>
-      <y>452</y>
+      <y>432</y>
       <width>291</width>
       <height>26</height>
      </rect>
@@ -337,7 +337,7 @@ From Plot</string>
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>450</y>
+      <y>430</y>
       <width>91</width>
       <height>31</height>
      </rect>
