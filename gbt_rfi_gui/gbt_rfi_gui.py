@@ -1,5 +1,6 @@
 import datetime
 import os
+import signal
 import sys
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rfi_query.settings")
@@ -426,6 +427,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     app = QtWidgets.QApplication(sys.argv)
     screen = Window()
     screen.show()
