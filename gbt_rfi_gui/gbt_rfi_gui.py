@@ -56,9 +56,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
         # Start and Stop Date DateEdit widgets
         self.end_date.setDate(datetime.datetime.today())
-        self.setEndDate()
         self.start_date.setDate(datetime.datetime.today() - datetime.timedelta(days=7))
-        self.end_date.dateChanged.connect(self.setEndDate)
+        self.setEndDate()
+        self.start_date.dateChanged.connect(self.setEndDate)
 
         # Frequency Range
         self.start_frequency.setValidator(QtGui.QDoubleValidator())
@@ -107,7 +107,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         return qs
 
-    def do_plot(self, receivers, end_date, start_date, start_frequency, end_frequency):
+    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
             Scan.objects.filter(datetime__lte=end_date, frontend__name__in=receivers)
@@ -362,10 +362,10 @@ class Window(QMainWindow, Ui_MainWindow):
         sys.exit()
 
     def setEndDate(self):
-        # don't let the user pick anything over 1 year away from the end_date
-        max_date = self.end_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        self.start_date.setMinimumDate(max_date - self.MAX_TIME_RANGE)
-        self.start_date.setMaximumDate(max_date)
+        # don't let the user pick anything over 1 year away from the start_date
+        max_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
+        self.end_date.setMinimumDate(max_date - self.MAX_TIME_RANGE)
+        self.end_date.setMaximumDate(max_date)
 
     def clicked(self):
         # change the color so the user knows that it is plotting
