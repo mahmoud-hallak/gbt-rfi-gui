@@ -116,14 +116,9 @@ class Window(QMainWindow, Ui_MainWindow):
             .datetime
         )
 
-        # print(
-        #    f"Most recent session date: {most_recent_session_prior_to_target_datetime.date()}"
-        # )
-
         qs = Frequency.objects.all()
 
         if receivers:
-            # print(f"Filtering by {receivers=}")
             qs = qs.filter(scan__frontend__name__in=receivers)
 
         if end_date:
@@ -137,22 +132,14 @@ class Window(QMainWindow, Ui_MainWindow):
                     f"""Your target date range holds no data \n  Displaying a new range with the most recent session data \n New range is {start_date.date()} to {end_date.date()}""",
                     QtWidgets.QMessageBox.Ok,
                 )
-                # print(
-                #    f"""Your target date range holds no data --
-                #     Displaying a new range with the most recent session data
-                #     -- new range is {start_date} to {end_date}"""
-                # )
-            # print(f"Filtering by {end_date=}")
-            # print(f"Starting from {end_date.date()} to {start_date.date()}")
+
             qs = qs.filter(scan__datetime__lte=end_date)
             qs = qs.filter(scan__datetime__gte=start_date)
 
         if start_frequency:
-            # print(f"Filtering by {start_frequency=}")
             qs = qs.filter(frequency__gte=start_frequency)
 
         if end_frequency:
-            # print(f"Filtering by {end_frequency=}")
             qs = qs.filter(frequency__lte=end_frequency)
 
         # make a 3 column dataFrame for the data needed to plot
@@ -364,8 +351,8 @@ class Window(QMainWindow, Ui_MainWindow):
     def setEndDate(self):
         # don't let the user pick anything over 1 year away from the start_date
         max_date = self.start_date.dateTime().toPyDateTime().replace(tzinfo=pytz.UTC)
-        self.end_date.setMinimumDate(max_date - self.MAX_TIME_RANGE)
-        self.end_date.setMaximumDate(max_date)
+        self.end_date.setMaximumDate(max_date + self.MAX_TIME_RANGE)
+        self.end_date.setMinimumDate(max_date)
 
     def clicked(self):
         # change the color so the user knows that it is plotting
