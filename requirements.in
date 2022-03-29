@@ -1,5 +1,6 @@
 django-crispy-forms<2
 django-environ
+django-debug-toolbar
 django-extensions<3
 Django<4
 ipdb
