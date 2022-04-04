@@ -1,10 +1,10 @@
 .. _gbt_rfi_gui:
 
 GBT RFI GUI / Query
-=============
+====================
 
 .. toctree::
-      :maxdepth: 1
+   :maxdepth: 1
    :glob:
 
    gbt_rfi_gui_for_dummies.rst
