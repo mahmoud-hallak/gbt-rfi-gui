@@ -143,7 +143,9 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(frequency__lte=end_frequency)
 
         # make a 3 column dataFrame for the data needed to plot
-        data = pd.DataFrame(qs.values("frequency", "intensity", "scan__datetime"))
+        data = pd.DataFrame(
+            qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
+        )
 
         if not data.empty:
 
@@ -177,9 +179,9 @@ class Window(QMainWindow, Ui_MainWindow):
         self, receivers, data, end_date, start_date, start_frequency, end_frequency
     ):
         # make a new object with the average intensity for the 2D plot
-        mean_data_intens = data.groupby(["scan__datetime", "frequency"]).agg(
-            {"intensity": ["mean"]}
-        )
+        mean_data_intens = data.groupby(
+            ["scan__datetime", "frequency", "scan__session__name"]
+        ).agg({"intensity": ["mean"]})
         mean_data_intens.columns = ["intensity_mean"]
         mean_data = mean_data_intens.reset_index()
         # sort values so the plot looks better, this has nothing to do with the actual data
@@ -192,12 +194,25 @@ class Window(QMainWindow, Ui_MainWindow):
             Date range : From {start_date.date()} to {end_date.date()} \n \
             Frequency Range : {mean_data['frequency'].min()}MHz to {mean_data['frequency'].max()}MHz "
 
+        # print out info for investagative GBO scientists
+        print("Your requested projects are below:")
+        print("Session Date \t\t Project_ID")
+        print("-------------------------------------")
+        sort_by_date = sorted_mean_data.sort_values(by=["scan__session__name"])
+        project_ids = sort_by_date["scan__session__name"].unique()
+        for i in project_ids:
+            proj_date = sort_by_date[
+                sort_by_date["scan__session__name"] == i
+            ].scan__datetime.unique()
+            proj_date = proj_date.strftime("%Y-%m-%d")
+            print(f"", proj_date[0], "\t\t", str(i))
+
         # Plot the 2D graph
         plt.figure(figsize=(9, 4))
         plt.title(txt, fontsize=8)
         plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
-        plt.xlabel("Frequency MHz")
-        plt.ylabel("Average Intensity Jy")
+        plt.xlabel("Frequency (MHz)")
+        plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
         plt.plot(
             sorted_mean_data["frequency"],
@@ -332,15 +347,15 @@ class Window(QMainWindow, Ui_MainWindow):
         QMessageBox.about(
             self,
             "Automated RFI Scan Data Reduction GUI",
-            """This GUI provides reduced RFI scans. \n\n The plots provided
-             give the user a look at the frequency vs averaged intensity
-             of RFI scans averaged over a given time range. \n A color plot
-             of all sessions in a given time frame is provided for ranges
-             with more than one session. \n The full receiver bandwidth can
-             be viewed by selecting a receiver or a more specified bandwidth
-             can be selected by inputting a start and stop frequency. \n For
-             Prime Focus receivers, users should provide the frequency
-             range of the receiver.""",
+            "This GUI provides reduced RFI scans. \n\n The plots provided "
+            "give the user a look at the frequency vs averaged intensity "
+            "of RFI scans averaged over a given time range. \n\n A color plot "
+            "of all sessions in a given time frame is provided for ranges "
+            "with more than one session. \n\n The full receiver bandwidth can "
+            "be viewed by selecting a receiver or a more specified bandwidth "
+            "can be selected by inputting a start and stop frequency. \n\n For "
+            "Prime Focus receivers, users should provide the frequency "
+            "range of the receiver.",
         )
 
     def menuQuit(self):
