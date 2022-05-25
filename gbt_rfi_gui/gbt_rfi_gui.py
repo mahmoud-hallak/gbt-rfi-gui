@@ -18,6 +18,7 @@ from PyQt5 import QtGui, QtWidgets
 from PyQt5.Qt import QMainWindow
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.uic import loadUiType
+import mplcursors
 
 from rfi.models import Frequency, Scan
 
@@ -208,12 +209,36 @@ class Window(QMainWindow, Ui_MainWindow):
             print(f"", proj_date[0], "\t\t", str(i))
 
         # Plot the 2D graph
-        plt.figure(figsize=(9, 4))
+        fig, ax = plt.subplots(1, figsize=(9, 4))
         plt.title(txt, fontsize=8)
         plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
         plt.xlabel("Frequency (MHz)")
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
+
+        def hover(event):
+            vis = annot.get_visible()
+            if event.inaxes == ax:
+                cont, ind = krfi.contains(event)
+                if cont:
+                    annot.xy = (event.xdata, event.ydata)
+                    annot.set_visible(True)
+                    fig.canvas.draw_idle()
+                else:
+                    if vis:
+                        annot.set_visible(False)
+                        fig.canvas.draw_idle()
+        known_rfi = self.get_known_rfi(start_frequency, end_frequency)
+        if len(known_rfi)>0:
+            for row in range(known_rfi.shape[0]):
+                krfi = ax.axvspan(known_rfi["Start"][row], known_rfi["End"][row], color='red', alpha=0.5)
+
+            annot = ax.annotate(f'{known_rfi["Type"][row]} \n {known_rfi["Notes"][row]}', xy=(0,0), xytext=(0,20), ha="center", textcoords="offset points",
+                    bbox=dict(boxstyle="round", fc="w"),
+                    arrowprops=dict(arrowstyle="->"))
+            annot.set_visible(False)
+            fig.canvas.mpl_connect("motion_notify_event", hover)
+
         plt.plot(
             sorted_mean_data["frequency"],
             sorted_mean_data["intensity_mean"],
@@ -426,6 +451,14 @@ class Window(QMainWindow, Ui_MainWindow):
         self.plot_button.setStyleSheet("background-color : rgb(229, 229, 229)")
         self.plot_button.setText("Plot for these Args")
         self.plot_button.setEnabled(True)
+
+    def get_known_rfi(self, start_frequency, end_frequency):
+        known_rfi = pd.read_csv('DummyKnownRFI.csv', usecols= ['Start','End', 'Type', 'Notes'])
+        known_rfi.drop(known_rfi[known_rfi['Start'] < start_frequency].index, inplace = True)
+        known_rfi.drop(known_rfi[known_rfi['End'] > end_frequency].index, inplace = True)
+        known_rfi = known_rfi.reset_index()
+        print(known_rfi)
+        return known_rfi
 
 
 def main():
