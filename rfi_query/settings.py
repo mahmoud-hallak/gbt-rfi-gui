@@ -9,6 +9,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import os
 from getpass import getuser
 from pathlib import Path
 
@@ -28,21 +29,24 @@ env = environ.Env(
 _env_file_template_path = Path(SETTINGS_DIR, ".env.template")
 _default_env_file_path = Path(SETTINGS_DIR, ".env")
 _env_file_path = env.str("ENV_PATH", _default_env_file_path)
-if not Path(_env_file_path).exists():
-    raise ValueError(
-        f"You must create a .env file at {_default_env_file_path} "
-        f"(use {_env_file_template_path} as a template), "
-        "or specify another path via the ENV_PATH variable"
-    )
+_env_path_explain = (
+    f"ENV_PATH={os.environ['ENV_PATH']}"
+    if "ENV_PATH" in os.environ
+    else "ENV_PATH doesn't exist"
+)
 try:
-    with open(_env_file_path):
-        pass
+    if not Path(_env_file_path).exists():
+        raise ValueError(
+            f"You must create a .env file at {_env_file_path} "
+            f"(use {_env_file_template_path} as a template), "
+            f"or specify another path via the ENV_PATH variable (currently {_env_path_explain})"
+        )
+    environ.Env.read_env(_env_file_path)
 except PermissionError as error:
     raise PermissionError(
         f"You do not have permission to read {_env_file_path}. Please contact gbosdd@nrao.edu"
         "if this is in error"
     ) from error
-environ.Env.read_env(_env_file_path)
 
 
 # Quick-start development settings - unsuitable for production
