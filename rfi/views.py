@@ -1,30 +1,19 @@
 import logging
-
 from datetime import timedelta
 
+import dateutil.parser as dp
 import numpy as np
-
-from django.views.generic import TemplateView
-from django.views.generic.base import RedirectView
-from django.utils.timezone import make_aware
+import plotly.graph_objs as go
+import plotly.offline as opy
 from scipy.signal import find_peaks
 
-import plotly.offline as opy
-import plotly.graph_objs as go
-
-from django.db.models import Max, Value, F, Min
-from django.http import HttpResponse, JsonResponse
-
-import dateutil.parser as dp
-from django.db.models import CharField, FloatField
+from django.db.models import FloatField, Max, Min
 from django.db.models.functions import Cast
-from .mjd import datetime_to_mjd, mjd_to_datetime
-
-from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect, render
+from django.utils.timezone import make_aware
 
 from .forms import QueryForm
-from .models import Frontend, Frequency, Scan
+from .models import Frequency, Frontend, Scan
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +29,7 @@ def graph(request):
     print(request.GET)
     channels = Frequency.objects.all()
 
-    receivers = Frontend.objects.all()
+    Frontend.objects.all()
     requested_receivers = request.GET.getlist("receivers")
     if requested_receivers:
         channels = channels.filter(scan__frontend__name__in=requested_receivers)
@@ -83,29 +72,15 @@ def graph(request):
                 f"Specify a reasonable start/end range (less than {MAX_TIME_SPAN})"
             )
 
-    scans = Scan.objects.all()
+    scans = Scan.objects.filter(frontend__name__in=requested_receivers)
     if requested_date:
-        print(f"Using requested date {requested_date}")
         # Get the nearest MJD (without scanning the whole table)
-        nearest_date_after_requested = (
-            scans.filter(datetime__gte=requested_date)
-            .order_by("datetime")
-            .first()
-            .datetime
-        )
-        nearest_date_before_requested = (
-            scans.filter(datetime__lt=requested_date)
+        nearest_date = (
+            scans.filter(datetime__lte=requested_date)
             .order_by("-datetime")
             .first()
             .datetime
         )
-        nearest_date = (
-            nearest_date_before_requested
-            if abs((nearest_date_before_requested - requested_date).total_seconds())
-            < abs((nearest_date_after_requested - requested_date).total_seconds())
-            else nearest_date_after_requested
-        )
-
         channels = channels.filter(scan__datetime=nearest_date)
         print(f"Filtering channels to those taken in nearest scan {nearest_date}")
 
