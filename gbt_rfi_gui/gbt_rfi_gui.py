@@ -9,11 +9,13 @@ import django
 
 django.setup()
 
+
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytz
+from matplotlib.artist import Artist
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.Qt import QMainWindow
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
@@ -136,6 +138,31 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(scan__datetime__lte=end_date)
             qs = qs.filter(scan__datetime__gte=start_date)
 
+        #replace empty frequency values with start/end of
+        print(start_frequency)
+        print(end_frequency)
+        print(receivers)
+
+        freqdict = {
+            "['Prime Focus 1']": [290, 920],
+            "['Rcvr1_2']": [1150,1730], #'Rcvr1_2'
+            "['Rcvr2_3']": [1730,2600], #'Rcvr2_3'
+            "['Rcvr4_6']": [3800,7800], #'Rcvr4_6'
+            "['Rcvr8_10']": [7800,11600], #'Rcvr8_10'
+            "['Rcvr12_18']": [12000,15400], #'Rcvr12_18'
+            "['RcvrArray18_26']": [18000,27500], #'Rcvr18_26'
+            "['Rcvr26_40']": [26000,39500], #'Rcvr26_40'
+            "['Rcvr40_52']": [39200,50500] #'Rcvr40_52'
+        }
+
+        if start_frequency == None:
+            lower = freqdict[str(receivers)][0]
+            start_frequency = lower
+
+        if end_frequency == None:
+            upper = freqdict[str(receivers)][1]
+            end_frequency = upper
+
         if start_frequency:
             qs = qs.filter(frequency__gte=start_frequency)
 
@@ -207,13 +234,37 @@ class Window(QMainWindow, Ui_MainWindow):
             proj_date = proj_date.strftime("%Y-%m-%d")
             print(f"", proj_date[0], "\t\t", str(i))
 
-        # Plot the 2D graph
-        plt.figure(figsize=(9, 4))
+         # Plot the 2D graph
+        fig, ax = plt.subplots(1, figsize=(9, 4))
         plt.title(txt, fontsize=8)
         plt.suptitle("Averaged RFI Environment at Green Bank Observatory")
         plt.xlabel("Frequency (MHz)")
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
+
+        self.getrfi = self.getrfi_func(start_frequency, end_frequency)
+        def onclick(event):
+            print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+                  ('double' if event.dblclick else 'single', event.button,
+                   event.x, event.y, event.xdata, event.ydata))
+            click_rfi = self.getrfi.copy()
+            click_rfi.drop(click_rfi[click_rfi['start'] > event.xdata].index, inplace = True)
+            click_rfi.drop(click_rfi[click_rfi['end'] < event.xdata].index, inplace = True)
+            click_rfi = click_rfi.reset_index()
+            for row in range(click_rfi.shape[0]):
+                mid = (click_rfi["end"][row] - click_rfi["start"][row])/2
+                annot = ax.annotate(text=click_rfi["comments"][row], xy=(click_rfi["start"][row]+mid,0), xytext=(click_rfi["start"][row]+mid,300), ha="center", textcoords="data",
+                    bbox=dict(boxstyle="round", fc="w"),
+                    arrowprops=dict(arrowstyle="->"), wrap=True)
+                fig.canvas.draw()
+                Artist.remove(annot)
+
+        if len(self.getrfi)>0:
+            for row in range(self.getrfi.shape[0]):
+                krfi = ax.axvspan(self.getrfi["start"][row], self.getrfi["end"][row], color="purple", alpha=.4)
+
+            fig.canvas.mpl_connect('button_press_event', onclick)
+
         plt.plot(
             sorted_mean_data["frequency"],
             sorted_mean_data["intensity_mean"],
@@ -426,6 +477,18 @@ class Window(QMainWindow, Ui_MainWindow):
         self.plot_button.setStyleSheet("background-color : rgb(229, 229, 229)")
         self.plot_button.setText("Plot for these Args")
         self.plot_button.setEnabled(True)
+
+        # get known rfi dat
+    def getrfi_func(self, start_frequency, end_frequency):
+        getrfi = pd.read_csv(r'/home/sandboxes/aseidman/gbt-rfi-gui/gbt_rfi_gui/fccsheet.csv', usecols=[
+        'start', 'end', 'comments'])
+        # drop the rfi that's outside of entered range
+        getrfi.drop(getrfi[getrfi['start'] < start_frequency].index, inplace = True)
+        getrfi.drop(getrfi[getrfi['end'] > end_frequency].index, inplace = True)
+        #reset
+        getrfi = getrfi.reset_index()
+        print(getrfi)
+        return getrfi
 
 
 def main():
