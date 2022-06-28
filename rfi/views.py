@@ -1,10 +1,13 @@
+import datetime
 import logging
-from datetime import timedelta
 
 import dateutil.parser as dp
+import matplotlib.dates as mdates
 import numpy as np
+import pandas as pd
 import plotly.graph_objs as go
 import plotly.offline as opy
+from plotly.subplots import make_subplots
 from scipy.signal import find_peaks
 
 from django.db.models import FloatField, Max, Min
@@ -17,7 +20,7 @@ from .models import Frequency, Frontend, Scan
 
 logger = logging.getLogger(__name__)
 
-MAX_TIME_SPAN = timedelta(days=70)
+MAX_TIME_SPAN = datetime.timedelta(days=70)
 
 
 def query(request):
@@ -139,6 +142,12 @@ def graph(request):
         # to_plot = freq_vs_intensity
         to_plot = all_local_maximum_intensities
         print(f"Actual # {len(to_plot)}")
+
+        data = pd.DataFrame(
+            channels.values("frequency", "intensity", "scan__datetime", "scan__session__name")
+            )
+        unique_days = data.scan__datetime.unique()
+        fig = make_subplots(rows=len(unique_days)+1, cols=1)
         graph = go.Scatter(
             x=to_plot[:,0],
             y=to_plot[:,1],
@@ -147,11 +156,11 @@ def graph(request):
             name="1st Trace",
         )
         if start == end:
-            date_range_str = start.strftime("%Y/%m/%d %H:%M:%S")
+            date_range_str = start.strftime("%m/%d/%Y")
         else:
             date_range_str = (
-                f"{start.strftime('%Y/%m/%d %H:%M:%S')} - "
-                f"{end.strftime('%Y/%m/%d %H:%M:%S')}"
+                f"{start.strftime('%m/%d/%Y')} - "
+                f"{end.strftime('%m/%d/%Y')}"
             )
         layout = go.Layout(
             title=f"RFI Data ({date_range_str})",
@@ -160,6 +169,72 @@ def graph(request):
         )
         figure = go.Figure(data=graph, layout=layout)
         div = opy.plot(figure, auto_open=False, output_type="div")
+
+        session = 1
+        [str(i.date()) for i in unique_days]
+        fig = make_subplots(rows=len(unique_days), cols=1, shared_xaxes=True, x_title="Frequency (MHz)")#, subplot_titles=unique_days_title)
+        for unique_day in unique_days:
+            date_of_interest_datetime = unique_day.to_pydatetime()
+
+            unique_date_range = data[
+                data["scan__datetime"] == date_of_interest_datetime
+            ]  # get the data but only for one session of interest at a time
+            date_of_interest_datetime = date_of_interest_datetime.replace(tzinfo=None)
+            # make the date bins for plotting
+            widen = datetime.timedelta(hours=1)
+            date_bins = np.arange(
+                date_of_interest_datetime - widen,
+                date_of_interest_datetime + widen,
+                datetime.timedelta(hours=1),
+            ).astype(datetime.datetime)
+            # Get the center of the date bins (for plotting)
+            dates = date_bins[:-1] + 0.5 * np.diff(date_bins)
+            # Convert from datetime
+            mdates.date2num(dates)
+
+            # make the freq bins for plotting
+            freq_bins = np.arange(
+                unique_date_range["frequency"].min(),
+                unique_date_range["frequency"].max(),
+                1.0,
+            )
+
+            # Get the center of the frequency bins (for plotting)
+            freqs = freq_bins[:-1] + 0.5 * np.diff(freq_bins)
+
+            df_rfi_grouped2 = unique_date_range.groupby(
+                [
+                    pd.cut(unique_date_range.scan__datetime, date_bins),
+                    pd.cut(unique_date_range.frequency, freq_bins),
+                ]
+            )
+
+            timeseries_rfi = df_rfi_grouped2.max().intensity
+
+            print(f"Actual # {len(timeseries_rfi.unstack())}")
+            to_plot = np.log10(timeseries_rfi.unstack())
+
+            fig.append_trace(go.Heatmap(
+                x=freq_bins,
+                y=[str(unique_day.date())],
+                z=to_plot,
+                colorscale='Viridis',
+                coloraxis="coloraxis"
+                ), row=session, col=1
+                )
+
+            session=session+1
+            nl = "\n"
+            layout = go.Layout(
+                title=f"RFI Data ({date_range_str})", title_x=0.5,
+                coloraxis = {'colorscale':'viridis'},
+                )
+
+            fig.update_layout(layout)
+            fig.update_yaxes(tickformat="%b %d %Y", dtick=86400000)
+
+        fig.show()
+
     else:
         div = None
 
