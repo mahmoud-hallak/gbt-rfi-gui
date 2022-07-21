@@ -122,11 +122,28 @@ def graph(request):
     )
     start = channel_aggregates["first_scan_start"]
     end = channel_aggregates["last_scan_start"]
-    MAX_POINTS_TO_PLOT = 500_000
-    if (num_channels := channels.count()) > MAX_POINTS_TO_PLOT:
-        raise ValueError(
-            f"Too many points: {num_channels:,}. Must be <{MAX_POINTS_TO_PLOT:,}"
-        )
+
+    # set the prominence
+    prom_by_rcvr = {
+    "Prime Focus 1": 0.17,
+    "Rcvr_800": 0.17,
+    "Prime Focus 2": 0.17,
+    "Rcvr1_2": 10,
+    "Rcvr2_3": 0.17,
+    "Rcvr4_6": 0.17,
+    "Rcvr8_10": 0.17,
+    "Rcvr12_18": 0.17,
+    "RcvrArray18_26": 0.17,
+    "Rcvr26_40": 0.17,
+    "Rcvr40_52": 0.17,
+    }
+
+    proms=[]
+    for rcvr in requested_receivers:
+        proms.append(prom_by_rcvr[rcvr])
+    prominence_val = max(proms)
+    print(f"this is the prom val: {prominence_val}")
+
     data = channels.annotate(
         freq_float=Cast("frequency", FloatField()),
         intensity_float=Cast("intensity", FloatField()),
@@ -136,24 +153,31 @@ def graph(request):
         freq_vs_intensity = np.array(data)
         # Find local maxima (peaks) in intensities (second axis). This seems to reduce
         # the data by roughly a third, but doesn't throw away any spikes
-        intensity_peaks = find_peaks(freq_vs_intensity[:,1])[0]
+        # prominence can reduce the data even further while preserving the peaks
+        intensity_peaks = find_peaks(freq_vs_intensity[:,1])[0] #, prominence=prominence_val
         all_local_maximum_intensities = freq_vs_intensity[intensity_peaks]
         # NOTE: Can toggle this to make sure the shape stays the same
         # to_plot = freq_vs_intensity
         to_plot = all_local_maximum_intensities
+        MAX_POINTS_TO_PLOT = 200_000
+        if (num_channels := len(to_plot)) > MAX_POINTS_TO_PLOT:
+            raise ValueError(
+                f"Too many points: {num_channels:,}. Must be <{MAX_POINTS_TO_PLOT:,}"
+            )
         print(f"Actual # {len(to_plot)}")
 
+        # set up the data to be used
         data = pd.DataFrame(
             channels.values("frequency", "intensity", "scan__datetime", "scan__session__name")
             )
         unique_days = data.scan__datetime.unique()
-        fig = make_subplots(rows=len(unique_days)+1, cols=1)
+        div=[]
+
+        # create the line plot and add it to div
         graph = go.Scatter(
             x=to_plot[:,0],
             y=to_plot[:,1],
-            marker={"color": "red", "symbol": "circle", "size": 3},
-            # mode="markers",
-            name="1st Trace",
+            marker={"color": "black", "symbol": "circle", "size": 3},
         )
         if start == end:
             date_range_str = start.strftime("%m/%d/%Y")
@@ -162,17 +186,38 @@ def graph(request):
                 f"{start.strftime('%m/%d/%Y')} - "
                 f"{end.strftime('%m/%d/%Y')}"
             )
+        freq_range_str = f"{data.frequency.min():.2f}-{data.frequency.max():.2f}"
+        rcvr_names = {
+            "Prime Focus 1": "PF1",
+            "Rcvr_800": "PF1_800",
+            "Prime Focus 2": "PF2",
+            "Rcvr1_2": "L-Band",
+            "Rcvr2_3": "S-Band",
+            "Rcvr4_6": "C-Band",
+            "Rcvr8_10": "X-Band",
+            "Rcvr12_18": "Ku-Band",
+            "RcvrArray18_26": "KFPA",
+            "Rcvr26_40": "Ka-Band",
+            "Rcvr40_52": "Q-Band",
+            }
+        requested_receivers_name=[rcvr_names[i] for i in requested_receivers]
+        rcvr_str = ", ".join(requested_receivers_name)
+        title_line = "Averaged RFI Environment at Green Bank Observatory with Following Parameters <br> <i>%s    %s    %s MHz</i>" % (date_range_str, rcvr_str, freq_range_str)
         layout = go.Layout(
-            title=f"RFI Data ({date_range_str})",
+            title=title_line,
+            title_x=0.5,
             xaxis={"title": "Frequency (MHz)"},
             yaxis={"title": "Intensity (Jy)"},
         )
         figure = go.Figure(data=graph, layout=layout)
-        div = opy.plot(figure, auto_open=False, output_type="div")
+        div.append(opy.plot(figure, auto_open=False, output_type="div"))
 
+
+        # make the color plot/s and add them to div
         session = 1
         [str(i.date()) for i in unique_days]
-        fig = make_subplots(rows=len(unique_days), cols=1, shared_xaxes=True, x_title="Frequency (MHz)")#, subplot_titles=unique_days_title)
+        fig = make_subplots(rows=len(unique_days), cols=1, shared_xaxes=True, x_title="Frequency (MHz)")
+
         for unique_day in unique_days:
             date_of_interest_datetime = unique_day.to_pydatetime()
 
@@ -211,7 +256,6 @@ def graph(request):
 
             timeseries_rfi = df_rfi_grouped2.max().intensity
 
-            print(f"Actual # {len(timeseries_rfi.unstack())}")
             to_plot = np.log10(timeseries_rfi.unstack())
 
             fig.append_trace(go.Heatmap(
@@ -220,25 +264,26 @@ def graph(request):
                 z=to_plot,
                 colorscale='Viridis',
                 coloraxis="coloraxis"
-                ), row=session, col=1
+                ), row=session, col=1,
                 )
 
             session=session+1
-            nl = "\n"
+            title_color = "RFI Environment at Green Bank Observatory per Session with Following Parameters <br> <i>%s    %s    %s MHz</i>" % (date_range_str, rcvr_str, freq_range_str)
             layout = go.Layout(
-                title=f"RFI Data ({date_range_str})", title_x=0.5,
+                title=title_color,
+                title_x=0.5,
                 coloraxis = {'colorscale':'viridis'},
+                height = 100+100*session-1
                 )
-
             fig.update_layout(layout)
             fig.update_yaxes(tickformat="%b %d %Y", dtick=86400000)
 
-        fig.show()
+        div.append(opy.plot(fig, auto_open=False, output_type="div"))
 
     else:
         div = None
 
     if div:
-        return render(request, "rfi/graph.html", {"graph": div})
+        return render(request, "rfi/graph.html", {"graphs": div})
     else:
         return redirect("/query")

@@ -13,15 +13,23 @@
 
   <body style="background-color: #211D1E;">
     <div class="container" style="background-color:#211D1E;color:white";>
-    <form action="/graph/" method="get">
+    <form onsubmit="this.querySelectorAll('[type=submit]').forEach(b => b.value = 'loading...')" action="/graph/" method="get">
       <div class="row">
         <div class="col">
           <div class="mb-3">
             <label for="receivers" class="form-label">Receivers</label>
             <select name="receivers" id="receivers" class="form-select" multiple aria-label="multiple select example" style="height: 275px;width:200px">
-              {% for name, value in form.fields.receivers.choices %}
-                <option value="{{value}}">{{value}}</option>
-              {% endfor %}
+              <option value="Prime Focus 1">Prime Focus 1</option>
+              <option value="Rcvr_800">Prime Focus 1 - 800</option>
+              <option value="Prime Focus 2">Prime Focus 2</option>
+              <option value="Rcvr1_2">L-Band</option>
+              <option value="Rcvr2_3">S-Band</option>
+              <option value="Rcvr4_6">C-Band</option>
+              <option value="Rcvr8_10">X-Band</option>
+              <option value="Rcvr12_18">Ku-Band</option>
+              <option value="RcvrArray18_26">KFPA</option>
+              <option value="Rcvr26_40">Ka-Band</option>
+              <option value="Rcvr40_52">Q-Band</option>
             </select>
             <div id="receiversHelp" class="form-text">Receivers</div>
           </div>
