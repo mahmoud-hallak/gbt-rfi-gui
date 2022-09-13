@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>602</width>
-    <height>586</height>
+    <height>633</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -110,10 +110,10 @@
    <widget class="QCheckBox" name="saveData">
     <property name="geometry">
      <rect>
-      <x>390</x>
-      <y>480</y>
-      <width>101</width>
-      <height>51</height>
+      <x>190</x>
+      <y>490</y>
+      <width>291</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="font">
@@ -126,8 +126,7 @@
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this box is checked, the data from this query will be saved to a csv file. &lt;/p&gt;&lt;p&gt;User will be prompted to provide the location and name of the resultant file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
-     <string>Save Data
-From Plot</string>
+     <string>Save Data From This Plot in CSV Format</string>
     </property>
    </widget>
    <widget class="QPushButton" name="plot_button">
@@ -136,8 +135,8 @@ From Plot</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>470</y>
+      <x>230</x>
+      <y>520</y>
       <width>191</width>
       <height>61</height>
      </rect>
@@ -353,6 +352,31 @@ From Plot</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="yes_annotate">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>465</y>
+      <width>301</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>DejaVu Serif</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="toolTip">
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this box is checked, the data from this query will be saved to a csv file. &lt;/p&gt;&lt;p&gt;User will be prompted to provide the location and name of the resultant file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+    <property name="text">
+     <string>Annotate FCC Radio Spectrum Allocation</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>
