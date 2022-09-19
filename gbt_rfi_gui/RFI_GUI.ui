@@ -370,7 +370,7 @@
      </font>
     </property>
     <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this box is checked, the data from this query will be saved to a csv file. &lt;/p&gt;&lt;p&gt;User will be prompted to provide the location and name of the resultant file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this box is checked, annotations will be shown from the FCC radio allocations table&lt;/p&gt;&lt;p&gt;When the user clicks on a frequency range in their line plot, they will see:&lt;/p&gt;&lt;p&gt;1. An annotation window of the allocation data for that range&lt;/p&gt;&lt;p&gt;2. A print out to the command line of this range and data for documentation purposes&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
     <property name="text">
      <string>Annotate FCC Radio Spectrum Allocation</string>

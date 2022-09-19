@@ -50,6 +50,7 @@ class Window(QMainWindow, Ui_MainWindow):
             "K-band FPA",
             "Ka-band",
             "Q-band",
+            "W-band",
         ]
         self.receivers.addItems(rcvrs)
 
@@ -137,15 +138,16 @@ class Window(QMainWindow, Ui_MainWindow):
 
         # hardcode freq values for annotations
         freqdict = {
-            "['Prime Focus 1']": [290, 920],
-            "['Rcvr1_2']": [1150, 1730],
-            "['Rcvr2_3']": [1730, 2600],
-            "['Rcvr4_6']": [3800, 7800],
-            "['Rcvr8_10']": [7800, 11600],
-            "['Rcvr12_18']": [12000, 15400],
-            "['RcvrArray18_26']": [18000, 27500],
-            "['Rcvr26_40']": [26000, 39500],
-            "['Rcvr40_52']": [39200, 50500],
+            "['Prime Focus 1']": [290, 920],  # PF1
+            "['Rcvr1_2']": [1150, 1730],  # L
+            "['Rcvr2_3']": [1730, 2600],  # S
+            "['Rcvr4_6']": [3800, 7800],  # C
+            "['Rcvr8_10']": [7800, 11600],  # X
+            "['Rcvr12_18']": [12000, 15400],  # Ku
+            "['RcvrArray18_26']": [18000, 27500],  # KFPA
+            "['Rcvr26_40']": [26000, 39500],  # Ka
+            "['Rcvr40_52']": [39200, 50500],  # Q
+            "['Rcvr68_92']": [67000, 93300],  # W
         }
 
         if self.yes_annotate.isChecked():
@@ -247,6 +249,11 @@ class Window(QMainWindow, Ui_MainWindow):
                     click_rfi[click_rfi["end"] < event.xdata].index, inplace=True
                 )
                 click_rfi = click_rfi.reset_index()
+
+                # if you click outside the plot you return all values - we want to return none
+                if len(click_rfi) == len(self.getrfi.copy()):
+                    click_rfi = pd.DataFrame(columns=click_rfi.columns)
+
                 for row in range(click_rfi.shape[0]):
                     print(
                         f"{click_rfi['comments'][row]} : {click_rfi['start'][row]} - {click_rfi['end'][row]} MHz"
@@ -449,6 +456,7 @@ class Window(QMainWindow, Ui_MainWindow):
             "K-band FPA": "RcvrArray18_26",
             "Ka-band": "Rcvr26_40",
             "Q-band": "Rcvr40_52",
+            "W-band": "Rcvr68_92",
         }
 
         receivers_band = [i.text() for i in self.receivers.selectedItems()]
