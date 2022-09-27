@@ -50,7 +50,6 @@ class Window(QMainWindow, Ui_MainWindow):
             "K-band FPA",
             "Ka-band",
             "Q-band",
-            "W-band",
         ]
         self.receivers.addItems(rcvrs)
 
@@ -136,27 +135,6 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(scan__datetime__lte=end_date)
             qs = qs.filter(scan__datetime__gte=start_date)
 
-        # hardcode freq values for annotations
-        freqdict = {
-            "['Prime Focus 1']": [290, 920],  # PF1
-            "['Rcvr1_2']": [1150, 1730],  # L
-            "['Rcvr2_3']": [1730, 2600],  # S
-            "['Rcvr4_6']": [3800, 7800],  # C
-            "['Rcvr8_10']": [7800, 11600],  # X
-            "['Rcvr12_18']": [12000, 15400],  # Ku
-            "['RcvrArray18_26']": [18000, 27500],  # KFPA
-            "['Rcvr26_40']": [26000, 39500],  # Ka
-            "['Rcvr40_52']": [39200, 50500],  # Q
-            "['Rcvr68_92']": [67000, 93300],  # W
-        }
-
-        if self.yes_annotate.isChecked():
-            if start_frequency == None:
-                start_frequency = freqdict[str(receivers)][0]
-
-            if end_frequency == None:
-                end_frequency = freqdict[str(receivers)][1]
-
         if start_frequency:
             qs = qs.filter(frequency__gte=start_frequency)
 
@@ -167,6 +145,13 @@ class Window(QMainWindow, Ui_MainWindow):
         data = pd.DataFrame(
             qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
         )
+        print(receivers)
+
+        if not start_frequency:
+            start_frequency = data["frequency"].min()
+        if not end_frequency:
+            end_frequency = data["frequency"].max()
+        print(start_frequency, end_frequency)
 
         if not data.empty:
             # line plot
@@ -235,6 +220,7 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.xlabel("Frequency (MHz)")
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
+        plt.xlim(start_frequency, end_frequency)
 
         # Create the annotations for RFI, only plot if user selects
         if self.yes_annotate.isChecked():
@@ -456,7 +442,6 @@ class Window(QMainWindow, Ui_MainWindow):
             "K-band FPA": "RcvrArray18_26",
             "Ka-band": "Rcvr26_40",
             "Q-band": "Rcvr40_52",
-            "W-band": "Rcvr68_92",
         }
 
         receivers_band = [i.text() for i in self.receivers.selectedItems()]
@@ -502,9 +487,9 @@ class Window(QMainWindow, Ui_MainWindow):
             os.path.dirname(__file__) + r"/fccsheet.csv",
             usecols=["start", "end", "comments"],
         )
-        # drop the rfi that's outside of entered range
-        getrfi.drop(getrfi[getrfi["start"] < start_frequency].index, inplace=True)
-        getrfi.drop(getrfi[getrfi["end"] > end_frequency].index, inplace=True)
+
+        getrfi.drop(getrfi[getrfi["start"] < start_frequency].index[:-1], inplace=True)
+        getrfi.drop(getrfi[getrfi["end"] > end_frequency].index[1:], inplace=True)
         # reset
         getrfi = getrfi.reset_index()
         return getrfi
