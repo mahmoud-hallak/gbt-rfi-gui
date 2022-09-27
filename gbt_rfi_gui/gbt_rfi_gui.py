@@ -85,23 +85,17 @@ class Window(QMainWindow, Ui_MainWindow):
         )
 
         if receivers:
-            # print(f"Filtering by {receivers=}")
             qs = qs.filter(frontend__name__in=receivers)
 
         if end_date:
-            # print(f"Filtering by {end_date=}")
             qs = qs.filter(datetime__lte=end_date)
         if start_date:
-            # print(f"Filtering by {start_date=}")
             qs = qs.filter(datetime__lte=start_date)
-            # print(f"Starting from {end_date.date()} to {start_date.date()}")
 
         if start_frequency:
-            # print(f"Filtering by {start_frequency=}")
             qs = qs.filter(frequency__frequency__gte=start_frequency)
 
         if end_frequency:
-            # print(f"Filtering by {end_frequency=}")
             qs = qs.filter(frequency__frequency__lte=end_frequency)
 
         return qs
@@ -145,14 +139,11 @@ class Window(QMainWindow, Ui_MainWindow):
         data = pd.DataFrame(
             qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
         )
-        print(receivers)
 
         if not start_frequency:
             start_frequency = data["frequency"].min()
         if not end_frequency:
             end_frequency = data["frequency"].max()
-        print(start_frequency, end_frequency)
-
         if not data.empty:
             # line plot
             self.make_plot(
