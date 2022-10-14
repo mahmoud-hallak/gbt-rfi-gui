@@ -243,7 +243,7 @@ class Window(QMainWindow, Ui_MainWindow):
                         ha="center",
                         textcoords="data",
                         bbox=dict(boxstyle="round", fc="w"),
-                        arrowprops=dict(arrowstyle="->"),
+                        arrowprops=dict(arrowstyle="->", color="green"),
                         wrap=True,
                     )
                     fig.canvas.draw()

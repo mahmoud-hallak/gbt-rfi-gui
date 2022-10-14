@@ -31,7 +31,7 @@
      </font>
     </property>
     <property name="text">
-     <string>To facilitate the retreivial and reduction of RFI Data of interest</string>
+     <string>To facilitate the retrieval and reduction of RFI Data of interest</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
