@@ -1,58 +1,111 @@
 <!DOCTYPE html>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+
 <html>
 	<head>
 		<meta charset="utf-8">
 		<title>PLOTS</title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
 
-	<style>
 
-	.sidenav {
-	  width: 260px;
-	  position: fixed;
-	  z-index: 1;
-	  top: 20px;
-	  left: 10px;
-	  background: #eee;
-	  overflow-x: hidden;
-	  padding: 8px 0;
-	}
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="#"> <img src="../../static/rfi/images/GREAT_transparent.png" width="200" height="50" class="d-inline-block align-top" alt="">
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-item nav-link active" href="#">Home <span class="sr-only"></span></a>
+          <a class="nav-item nav-link" href="#">Information</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/rfi-gui-user-guide">GBT-RFI-GUI</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/science/gbt-observers/rfi-mitigation/">RFI Mitigation</a>
+        </div>
+      </div>
 
-	.sidenav a {
-	  padding: 6px 8px 6px 16px;
-	  text-decoration: none;
-	  font-size: 25px;
-	  color: #2196F3;
-	  display: block;
-	}
+    	<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+	        <div class="navbar-nav ml-auto">
+	          <span class="navbar-text"><h5><br>Tips for Navigating Plots</h5>
+			  To interact, use your mouse to navigate and zoom on the plots. <br> To return to default scaling, hover over the plot and press the translucent home button on the top right of each plot
+			</span>
+	        </ul>
+	    </div>
+    </nav>
 
-	.sidenav a:hover {
-	  color: #064579;
-	}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		/* Center the loader */
+		#loader {
+		  position: absolute;
+		  left: 50%;
+		  top: 50%;
+		  z-index: 1;
+		  width: 120px;
+		  height: 120px;
+		  margin: -76px 0 0 -76px;
+		  border: 16px solid #f3f3f3;
+		  border-radius: 50%;
+		  border-top: 16px solid #3498db;
+		  -webkit-animation: spin 2s linear infinite;
+		  animation: spin 2s linear infinite;
+		}
 
-	.main {
-	  margin-left: 140px; /* Same width as the sidebar + left position in px */
-	  font-size: 28px; /* Increased text to enable scrolling */
-	  padding: 0px 10px;
-	}
+		@-webkit-keyframes spin {
+		  0% { -webkit-transform: rotate(0deg); }
+		  100% { -webkit-transform: rotate(360deg); }
+		}
 
-	@media screen and (max-height: 450px) {
-	  .sidenav {padding-top: 15px;}
-	  .sidenav a {font-size: 18px;}
-	}
-	</style>
+		@keyframes spin {
+		  0% { transform: rotate(0deg); }
+		  100% { transform: rotate(360deg); }
+		}
+
+		/* Add animation to "page content" */
+		.animate-bottom {
+		  position: relative;
+		  -webkit-animation-name: animatebottom;
+		  -webkit-animation-duration: 1s;
+		  animation-name: animatebottom;
+		  animation-duration: 1s
+		}
+
+		@-webkit-keyframes animatebottom {
+		  from { bottom:-100px; opacity:0 }
+		  to { bottom:0px; opacity:1 }
+		}
+
+		@keyframes animatebottom {
+		  from{ bottom:-100px; opacity:0 }
+		  to{ bottom:0; opacity:1 }
+		}
+
+		#myDiv {
+		  display: none;
+		  text-align: center;
+		}
+		</style>
 
 	</head>
 
 
-	<body>
-		<div class="sidenav">
-		  <label><h1> GBO RFI Resources</h1> </label>
-		  <a href="https://greenbankobservatory.org/science/gbt-observers/rfi-mitigation/">RFI Mitigation</a>
-		  <a href="https://greenbankobservatory.org/rfi-gui-user-guide">RFI User Guide</a>
-		  <label><h5><br>Tips for Navigating Plots</h5></label>
-		  <label>To the right are your queried line and color plots. <br><br> To interact, use your mouse to navigate and zoom on the plots. <br><br> To return to default scaling, hover over the plot and press the translucent home button on the top right of each plot</label>
-		</div>
+	<body  onload="myFunction()">
+		<div id="loader"></div>
+
+		<script>
+		var myVar;
+
+		function myFunction() {
+		  myVar = setTimeout(showPage, 0);
+		}
+
+		function showPage() {
+		  document.getElementById("loader").style.display = "none";
+		  document.getElementById("myDiv").style.display = "block";
+		}myDivmyFunction
+		</script>
+
 		<div class="container">
 			<div>
 				{% if graphs %}

@@ -1,4 +1,5 @@
-from django.urls import include, path
+from django.urls import path
+
 from rfi import views
 
 # router = routers.DefaultRouter()
@@ -9,6 +10,6 @@ from rfi import views
 urlpatterns = [
     # path('', include(router.urls)),
     # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('query/', views.query),
+    path('', views.query),
     path('graph/', views.graph),
 ]

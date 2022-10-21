@@ -10,6 +10,7 @@ import plotly.offline as opy
 from plotly.subplots import make_subplots
 from scipy.signal import find_peaks
 
+from django.core.exceptions import ValidationError, i
 from django.db.models import FloatField, Max, Min
 from django.db.models.functions import Cast
 from django.shortcuts import redirect, render
@@ -22,13 +23,32 @@ logger = logging.getLogger(__name__)
 
 MAX_TIME_SPAN = datetime.timedelta(days=70)
 
+def map_names(request):
+    friendly_names = {"Prime Focus 1":"Prime Focus 1",
+    "Rcvr_800":"Prime Focus 1 - 800",
+    "Prime Focus 2":"Prime Focus 2",
+    "Rcvr1_2":"L-Band",
+    "Rcvr2_3":"S-Band",
+    "Rcvr4_6":"C-Band",
+    "Rcvr8_10":"X-Band",
+    "Rcvr12_18":"Ku-Band",
+    "RcvrArray18_26":"KFPA",
+    "Rcvr26_40":"Ka-Band",
+    "Rcvr40_52":"Q-Band"}
+    if i in friendly_names:
+        return friendly_names[i]
+
 
 def query(request):
     form = QueryForm()
+    form.is_valid()
     return render(request, "rfi/query.html", {"form": form})
 
 
 def graph(request):
+    render(request, "rfi/graph.html")
+    print("page should be loaded")
+
     print(request.GET)
     channels = Frequency.objects.all()
 
@@ -39,29 +59,45 @@ def graph(request):
         print(f"Filtering channels to those taken with {requested_receivers=}")
 
     requested_freq_low = request.GET.get("freq_low", None)
-    if requested_freq_low:
-        # TODO: handle errors
+    requested_freq_high = request.GET.get("freq_high", None)
+
+    if requested_freq_low and requested_freq_high:
+        try:
+            requested_freq_high = float(requested_freq_high)
+            requested_freq_low = float(requested_freq_low)
+        except:
+            raise ValidationError("Frequencies are not float numbers.")
+        if requested_freq_high < requested_freq_low:
+            raise ValidationError("Requested Frequency High is lower than the requested low")
+        if requested_freq_low == requested_freq_high:
+            raise ValidationError("Requested Frequency High is the same as the requested low")
         channels = channels.filter(frequency__gte=float(requested_freq_low))
         print(f"Filtering channels to those taken above {requested_freq_low=}MHz")
-    requested_freq_high = request.GET.get("freq_high", None)
-    if requested_freq_high:
-        # TODO: handle errors
         channels = channels.filter(frequency__lte=float(requested_freq_high))
         print(f"Filtering channels to those taken below {requested_freq_high=}MHz")
+    else:
+        if requested_freq_low:
+            try: requested_freq_low = float(requested_freq_low)
+            except: raise ValidationError("Low frequency is not a float number.")
+            channels = channels.filter(frequency__gte=float(requested_freq_low))
+            print(f"Filtering channels to those taken above {requested_freq_low=}MHz")
+        if requested_freq_high:
+            try: requested_freq_high = float(requested_freq_high)
+            except: raise ValidationError("High frequency is not a float number.")
+            channels = channels.filter(frequency__lte=float(requested_freq_high))
+            print(f"Filtering channels to those taken below {requested_freq_high=}MHz")
 
-    # TODO: handle errors
     requested_date = (
         make_aware(dp.parse(date_str))
         if (date_str := request.GET.get("date"))
         else None
     )
-    # TODO: handle errors
+
     requested_start = (
         make_aware(dp.parse(start_str))
         if (start_str := request.GET.get("start"))
         else None
     )
-    # TODO: handle errors
     requested_end = (
         make_aware(dp.parse(end_str)) if (end_str := request.GET.get("end")) else None
     )
@@ -78,14 +114,17 @@ def graph(request):
     scans = Scan.objects.filter(frontend__name__in=requested_receivers)
     if requested_date:
         # Get the nearest MJD (without scanning the whole table)
-        nearest_date = (
-            scans.filter(datetime__lte=requested_date)
-            .order_by("-datetime")
-            .first()
-            .datetime
-        )
-        channels = channels.filter(scan__datetime=nearest_date)
-        print(f"Filtering channels to those taken in nearest scan {nearest_date}")
+        try:
+            nearest_date = (
+                scans.filter(datetime__lte=requested_date)
+                .order_by("-datetime")
+                .first()
+                .datetime
+            )
+            channels = channels.filter(scan__datetime=nearest_date)
+            print(f"Filtering channels to those taken in nearest scan {nearest_date}")
+        except:
+            raise ValidationError("No Data previous to your specified date.")
 
     elif requested_start or requested_end:
         if requested_start:
@@ -154,7 +193,7 @@ def graph(request):
         # Find local maxima (peaks) in intensities (second axis). This seems to reduce
         # the data by roughly a third, but doesn't throw away any spikes
         # prominence can reduce the data even further while preserving the peaks
-        intensity_peaks = find_peaks(freq_vs_intensity[:,1])[0] #, prominence=prominence_val
+        intensity_peaks = find_peaks(freq_vs_intensity[:,1])[0]#, prominence=prominence_val)[0]
         all_local_maximum_intensities = freq_vs_intensity[intensity_peaks]
         # NOTE: Can toggle this to make sure the shape stays the same
         # to_plot = freq_vs_intensity
@@ -286,4 +325,4 @@ def graph(request):
     if div:
         return render(request, "rfi/graph.html", {"graphs": div})
     else:
-        return redirect("/query")
+        return redirect("/")
