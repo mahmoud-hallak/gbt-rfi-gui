@@ -10,7 +10,7 @@ import plotly.offline as opy
 from plotly.subplots import make_subplots
 from scipy.signal import find_peaks
 
-from django.core.exceptions import ValidationError, i
+from django.core.exceptions import ValidationError
 from django.db.models import FloatField, Max, Min
 from django.db.models.functions import Cast
 from django.shortcuts import redirect, render
@@ -209,7 +209,10 @@ def graph(request):
         data = pd.DataFrame(
             channels.values("frequency", "intensity", "scan__datetime", "scan__session__name")
             )
+
+        data = data.sort_values(by=['scan__datetime'])
         unique_days = data.scan__datetime.unique()
+
         div=[]
 
         # create the line plot and add it to div
