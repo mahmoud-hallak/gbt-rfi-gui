@@ -89,7 +89,7 @@ class QueryForm(forms.Form):
         if not float(low):
           self.add_error('freq_low', forms.ValidationError('Frequencies must be numerical'))
         if not float(high):
-          self.add_error('freq_low', forms.ValidationError('Frequencies must be numerical'))
+          self.add_error('freq_high', forms.ValidationError('Frequencies must be numerical'))
 
         if low == high:
           self.add_error('freq_low', forms.ValidationError('Frequencies cannot be the same'))
