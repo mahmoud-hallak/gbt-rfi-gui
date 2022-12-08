@@ -1,17 +1,22 @@
-<!DOCTYPE html>
 {% load static %}
+{% load crispy_forms_tags %}
+
+<!DOCTYPE html>
+
 <link rel="stylesheet" type="text/css" href="{%static 'rfi/style.css' %}">
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
 
-<html>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+<html style="min-width: 750px">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RFI Query</title>
     <style>
-        .navbar {margin-bottom:50px;}
+        .navbar {margin-bottom:0px;}
         /* Center the loader */
         #loader {
           position: absolute;
@@ -62,83 +67,75 @@
           text-align: center;
         }
 
+        html,
+              body {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+              }
+        hr {
+          margin:  0.5rem 0;
+          background-color: whitesmoke;
+        }
     </style>
+
     <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #3c2a4b;">
-      <a class="navbar-brand" href="#"> <img src="../../static/rfi/images/GREAT_words_transparent.png" width="250" height="96" class="d-inline-block align-top" alt="">
+      <a class="navbar-brand" href="/">
+        <img src="../../static/rfi/images/GREAT_words_transparent.png" width="250" height="96" class="d-inline-block align-top" alt="Logo">
       </a>
+
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
+
       <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
         <div class="navbar-nav">
-          <a class="nav-item nav-link active" href="#">Home <span class="sr-only"></span></a>
-          <a class="nav-item nav-link" href="#">Information</a>
+          <a class="nav-item nav-link active" href="/">Home <span class="sr-only"></span></a>
+          <a class="nav-item nav-link" href="https://www.gb.nrao.edu/IPG/">IPG Information</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/rfi-scans-and-known-sources/">RFI Known Sources</a>
           <a class="nav-item nav-link" href="https://greenbankobservatory.org/rfi-gui-user-guide">GBT-RFI-GUI</a>
           <a class="nav-item nav-link" href="https://greenbankobservatory.org/science/gbt-observers/rfi-mitigation/">RFI Mitigation</a>
         </div>
       </div>
+
     </nav>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
   </head>
 
-  <body style="background-color: #211D1E;">
-    <div class="container" style="color:white";>
-    <form action="/graph/" method="get">
-      <div class="row">
-        <div class="col">
-          <div class="mb-3">
-            <label for="receivers" class="form-label">Receivers</label>
-            <select name="receivers" id="receivers" class="form-select" multiple aria-label="multiple select example" style="height: 275px;width:200px">
-              <option value="Prime Focus 1">Prime Focus 1</option>
-              <option value="Rcvr_800">Prime Focus 1 - 800</option>
-              <option value="Prime Focus 2">Prime Focus 2</option>
-              <option value="Rcvr1_2">L-Band</option>
-              <option value="Rcvr2_3">S-Band</option>
-              <option value="Rcvr4_6">C-Band</option>
-              <option value="Rcvr8_10">X-Band</option>
-              <option value="Rcvr12_18">Ku-Band</option>
-              <option value="RcvrArray18_26">KFPA</option>
-              <option value="Rcvr26_40">Ka-Band</option>
-              <option value="Rcvr40_52">Q-Band</option>
-            </select>
-            <div id="receiversHelp" class="form-text">Receivers</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="mb-3">
-            <label for="date" class="form-label">Date</label>
-            <input name="date" id="date" type="text" class="form-control" placeholder="YYYY/MM/DD" id="date" aria-describedby="dateHelp">
-            <div id="dateHelp" class="form-text">Date (get nearest)</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="mb-3">
-            <label for="start" class="form-label">Start</label>
-            <input name="start" id="start" type="text" class="form-control" placeholder="YYYY/MM/DD" id="start" aria-describedby="startHelp">
-            <div id="startHelp" class="form-text">Start date</div>
-          </div>
-          <div class="mb-3">
-            <label for="end" class="form-label">End</label>
-            <input name="end" id="end" type="text" class="form-control" placeholder="YYYY/MM/DD" id="end" aria-describedby="endHelp">
-            <div id="endHelp" class="form-text">End date</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="mb-3">
-            <label for="freq_low" class="form-label">Frequency Low</label>
-            <input name="freq_low" id="freq_low" type="text" class="form-control" placeholder="#### MHz" id="freq_low" aria-describedby="freq_low_help">
-            <div id="freq_low_help" class="form-text">Bottom of frequency range</div>
-          </div>
-          <div class="mb-3">
-            <label for="freq_high" class="form-label">Frequency High</label>
-            <input name="freq_high" id="freq_high" type="text" class="form-control" placeholder="#### MHz" id="freq_high" aria-describedby="freq_high_help">
-            <div id="freq_high_help" class="form-text">Top of frequency range</div>
-          </div>
-        </div>
 
+
+  <body style="background-color:#23182b">
+    <div class="d-flex bd-highlight" style="height:110%; min-height: 680px">
+      <div class="order-1 p-2" style="width: 30%; min-width: 250px; max-width:375px;">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+          <svg class="bi me-2" width="24" height="0"><use xlink:href="#bootstrap"/></svg>
+        </a>
+        <hr>
+          <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+             <div class="container" style="color:white; height:120%; min-height: 680px; border-width: 2px; padding-top: 10px; padding-bottom: 10px; border-color: #584F5E;">
+              <form method="get">
+                {% crispy form %}
+              </form>
+             </div>
+            </li>
+          </ul>
+        <hr>
       </div>
-      <input type="submit" class="btn btn-success" style="background-color:#3EC872;border-color:white;"></input>
-    </form>
+
+      <div class="order-2 p-2 flex-grow-1 bd-highlight">
+        <div>
+          {% if graphs %}
+            {% for plot in graphs %}
+                {{ plot|safe}}
+            {% endfor %}
+          {% else %}
+            <center><img src="../../static/rfi/images/GREAT_words_transparent.png" alt="Placeholder" vspace=254px></center>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
 
   </body>
 </html>

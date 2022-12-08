@@ -1,3 +1,4 @@
+
 import datetime
 import logging
 
@@ -10,10 +11,11 @@ import plotly.offline as opy
 from plotly.subplots import make_subplots
 from scipy.signal import find_peaks
 
+from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import FloatField, Max, Min
 from django.db.models.functions import Cast
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.utils.timezone import make_aware
 
 from .forms import QueryForm
@@ -21,39 +23,40 @@ from .models import Frequency, Frontend, Scan
 
 logger = logging.getLogger(__name__)
 
-MAX_TIME_SPAN = datetime.timedelta(days=70)
 
-def map_names(request):
-    friendly_names = {"Prime Focus 1":"Prime Focus 1",
-    "Rcvr_800":"Prime Focus 1 - 800",
-    "Prime Focus 2":"Prime Focus 2",
-    "Rcvr1_2":"L-Band",
-    "Rcvr2_3":"S-Band",
-    "Rcvr4_6":"C-Band",
-    "Rcvr8_10":"X-Band",
-    "Rcvr12_18":"Ku-Band",
-    "RcvrArray18_26":"KFPA",
-    "Rcvr26_40":"Ka-Band",
-    "Rcvr40_52":"Q-Band"}
-    if i in friendly_names:
-        return friendly_names[i]
-
-
-def query(request):
+def landing_page(request):
+    # only call the query if the user submitted something.
     form = QueryForm()
-    form.is_valid()
+    if request.method == "GET":
+        if request.GET.get("submit") == "Submit":
+            return query(request)
+
     return render(request, "rfi/query.html", {"form": form})
 
+def query(request):
+    # can set up as a single view with a sidebar for the query and a main block for the graph
+    # should present each as an option, for the rif team
+    # https://getbootstrap.com/docs/5.0/examples/sidebars/#
+    form = QueryForm(request.GET)
+    if form.is_valid():
+        return graph(request)
+    ## not passing on the keywords because there is no where for it to populate in the html...
+    else: print("form is not valid!")
+
+    return render(request, "rfi/query.html", {"form": form})
 
 def graph(request):
-    render(request, "rfi/graph.html")
-    print("page should be loaded")
+    if request.method == "GET":
+        cache_form = QueryForm(request.GET)
+        if cache_form.is_valid():
+            print("passed inspection. querying now")
 
     print(request.GET)
     channels = Frequency.objects.all()
 
     Frontend.objects.all()
     requested_receivers = request.GET.getlist("receivers")
+
     if requested_receivers:
         channels = channels.filter(scan__frontend__name__in=requested_receivers)
         print(f"Filtering channels to those taken with {requested_receivers=}")
@@ -66,11 +69,9 @@ def graph(request):
             requested_freq_high = float(requested_freq_high)
             requested_freq_low = float(requested_freq_low)
         except:
-            raise ValidationError("Frequencies are not float numbers.")
-        if requested_freq_high < requested_freq_low:
-            raise ValidationError("Requested Frequency High is lower than the requested low")
+            raise ValidationError(_("Frequencies are not float numbers."), code="NonFloatFreq")
         if requested_freq_low == requested_freq_high:
-            raise ValidationError("Requested Frequency High is the same as the requested low")
+            raise ValidationError("Requested Frequency High is the same as the requested low", code="HighSameAsLow")
         channels = channels.filter(frequency__gte=float(requested_freq_low))
         print(f"Filtering channels to those taken above {requested_freq_low=}MHz")
         channels = channels.filter(frequency__lte=float(requested_freq_high))
@@ -78,12 +79,12 @@ def graph(request):
     else:
         if requested_freq_low:
             try: requested_freq_low = float(requested_freq_low)
-            except: raise ValidationError("Low frequency is not a float number.")
+            except: raise ValidationError("Low frequency is not a float number.", code="NonFloatLowFreq")
             channels = channels.filter(frequency__gte=float(requested_freq_low))
             print(f"Filtering channels to those taken above {requested_freq_low=}MHz")
         if requested_freq_high:
             try: requested_freq_high = float(requested_freq_high)
-            except: raise ValidationError("High frequency is not a float number.")
+            except: raise ValidationError("High frequency is not a float number.", code="NonFloatHighFreq")
             channels = channels.filter(frequency__lte=float(requested_freq_high))
             print(f"Filtering channels to those taken below {requested_freq_high=}MHz")
 
@@ -103,12 +104,8 @@ def graph(request):
     )
     if requested_end and requested_start:
         if requested_end < requested_start:
-            raise ValueError(
-                f"End ({requested_end}) can't be before start ({requested_start})"
-            )
-        if requested_end - requested_start > MAX_TIME_SPAN:
-            raise ValueError(
-                f"Specify a reasonable start/end range (less than {MAX_TIME_SPAN})"
+            raise ValidationError(
+                "End %(requested_end) can't be before start %(requested_start)", params={'requested_end':requested_end, 'requested_start':requested_start}, code="EndDateBeforeStart"
             )
 
     scans = Scan.objects.filter(frontend__name__in=requested_receivers)
@@ -124,7 +121,7 @@ def graph(request):
             channels = channels.filter(scan__datetime=nearest_date)
             print(f"Filtering channels to those taken in nearest scan {nearest_date}")
         except:
-            raise ValidationError("No Data previous to your specified date.")
+            raise ValidationError(_("No Data previous to your specified date."), code="NoDataInRange")
 
     elif requested_start or requested_end:
         if requested_start:
@@ -197,12 +194,12 @@ def graph(request):
         all_local_maximum_intensities = freq_vs_intensity[intensity_peaks]
         # NOTE: Can toggle this to make sure the shape stays the same
         # to_plot = freq_vs_intensity
+        MAX_POINTS_TO_PLOT = 750_000
         to_plot = all_local_maximum_intensities
-        MAX_POINTS_TO_PLOT = 200_000
-        if (num_channels := len(to_plot)) > MAX_POINTS_TO_PLOT:
-            raise ValueError(
-                f"Too many points: {num_channels:,}. Must be <{MAX_POINTS_TO_PLOT:,}"
-            )
+        if len(to_plot) > MAX_POINTS_TO_PLOT:
+            cache_form._errors["receivers"] = forms.ValidationError(f"Too many points: {len(to_plot):,}. Must be <{MAX_POINTS_TO_PLOT:,}. Select smaller ranges.")
+            return render(request, "rfi/query.html", {"form": cache_form})
+
         print(f"Actual # {len(to_plot)}")
 
         # set up the data to be used
@@ -244,7 +241,7 @@ def graph(request):
             }
         requested_receivers_name=[rcvr_names[i] for i in requested_receivers]
         rcvr_str = ", ".join(requested_receivers_name)
-        title_line = "Averaged RFI Environment at Green Bank Observatory with Following Parameters <br> <i>%s    %s    %s MHz</i>" % (date_range_str, rcvr_str, freq_range_str)
+        title_line = "Averaged RFI Environment at Green Bank Observatory <br> <i>%s    %s    %s MHz</i>" % (date_range_str, rcvr_str, freq_range_str)
         layout = go.Layout(
             title=title_line,
             title_x=0.5,
@@ -310,7 +307,7 @@ def graph(request):
                 )
 
             session=session+1
-            title_color = "RFI Environment at Green Bank Observatory per Session with Following Parameters <br> <i>%s    %s    %s MHz</i>" % (date_range_str, rcvr_str, freq_range_str)
+            title_color = "RFI Environment at Green Bank Observatory per Session <br> <i>%s    %s    %s MHz</i>" % (date_range_str, rcvr_str, freq_range_str)
             layout = go.Layout(
                 title=title_color,
                 title_x=0.5,
@@ -326,6 +323,8 @@ def graph(request):
         div = None
 
     if div:
-        return render(request, "rfi/graph.html", {"graphs": div})
+        return render(request, "rfi/query.html", {"graphs": div, "form": cache_form})
     else:
-        return redirect("/")
+        cache_form._errors["start"] = forms.ValidationError('No Data in selected range')
+        cache_form._errors["end"] = forms.ValidationError('No Data in selected range')
+        return render(request, "rfi/query.html", {"form": cache_form})
