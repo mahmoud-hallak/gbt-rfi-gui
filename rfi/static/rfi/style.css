@@ -5,3 +5,18 @@ h1 {
   margin-bottom: .3em;
   text-decoration: underline;
 }
+
+.container {
+  height: 500px;
+  position: relative;
+  border: 3px solid #dbe4ed; /* Border color is optional */
+}
+
+ .center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}

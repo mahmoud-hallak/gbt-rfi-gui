@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from rfi import views
 
@@ -10,6 +10,7 @@ from rfi import views
 urlpatterns = [
     # path('', include(router.urls)),
     # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('', views.query),
-    path('graph/', views.graph),
+    path('', views.landing_page, name="rfi_webpage"),
+    #path('graph/', views.graph, name="graph"),
+    path('__debug__/', include('debug_toolbar.urls')),
 ]
