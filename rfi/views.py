@@ -53,6 +53,7 @@ class DoGraph(View):
         channels = self.filter_data()
         div, data = self.create_avg_line(channels)
         div = self.create_color_plot(div, data)
+        div = self.create_multi_line(div, data)
         return self.plot_it(div)
 
     def get_data(self):
@@ -319,3 +320,16 @@ class DoGraph(View):
             self.cache_form._errors["start"] = forms.ValidationError('No Data in selected range')
             self.cache_form._errors["end"] = forms.ValidationError('No Data in selected range')
             return render(self.request, "rfi/query.html", {"form": self.cache_form})
+
+    def create_multi_line(self, div, data):
+        import plotly.express as px
+        fig = px.line(data.sort_values(by=['frequency']), x="frequency", y="intensity", color="scan__session__name", labels={"scan__session__name":"Session"})
+        fig.update_layout(
+            hovermode='x unified',
+            #legend_title="Session",
+            title={"text":f"RFI Environment at Green Bank Observatory per Session <br> <i>{self.date_range_str}    {self.rcvr_str}    {self.freq_range_str} MHz</i>", "x": 0.5},
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Intensity (Jy)",
+        )
+        div.append(opy.plot(fig, output_type='div'))
+        return div
