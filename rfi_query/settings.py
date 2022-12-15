@@ -24,6 +24,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, []),
     INTERNAL_IPS=(list, []),
     SENTRY_ENV=(str, f"{_user}_dev"),
+    STATIC_ROOT=(str, None),
 )
 _env_file_template_path = Path(SETTINGS_DIR, ".env.template")
 _default_env_file_path = Path(SETTINGS_DIR, ".env")
@@ -49,7 +50,7 @@ environ.Env.read_env(_env_file_path)
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-6l!1x8wfc%3vcx70n6$7#i2d+s@!u@eyh@6=-5%r-&6tn+*_gb"
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
@@ -156,7 +157,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = "/static/"
-
+STATIC_ROOT = env("STATIC_ROOT")
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
