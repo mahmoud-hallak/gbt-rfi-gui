@@ -52,9 +52,12 @@ class DoGraph(View):
         self.get_data()
         channels = self.filter_data()
         div, data = self.create_avg_line(channels)
-        div = self.create_color_plot(div, data)
-        div = self.create_multi_line(div, data)
-        return self.plot_it(div)
+        if div == None:
+            return self.plot_it(div)
+        else:
+            div = self.create_color_plot(div, data)
+            div = self.create_multi_line(div, data)
+            return self.plot_it(div)
 
     def get_data(self):
         # clean the form
@@ -246,7 +249,7 @@ class DoGraph(View):
     def create_color_plot(self, div, data):
         # make the color plot/s and add them to div
         session = 1
-        [str(i.date()) for i in self.unique_days]
+        dates_string = [str(i.date()) for i in self.unique_days]
         fig = make_subplots(rows=len(self.unique_days), cols=1, shared_xaxes=True, x_title="Frequency (MHz)")
 
         for self.unique_day in self.unique_days:
@@ -291,7 +294,7 @@ class DoGraph(View):
 
             fig.append_trace(go.Heatmap(
                 x=freq_bins,
-                y=[str(self.unique_day.date())],
+                y=dates_string,
                 z=to_plot,
                 colorscale='Viridis',
                 coloraxis="coloraxis"
