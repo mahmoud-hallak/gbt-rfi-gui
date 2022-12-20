@@ -320,8 +320,12 @@ class DoGraph(View):
         if div:
             return render(self.request, "rfi/query.html", {"graphs": div, "form": self.cache_form})
         else:
-            self.cache_form._errors["start"] = forms.ValidationError('No Data in selected range')
-            self.cache_form._errors["end"] = forms.ValidationError('No Data in selected range')
+            if self.requested_start:
+                self.cache_form._errors["start"] = forms.ValidationError('No Data - Check date or freq. ranges')
+                self.cache_form._errors["end"] = forms.ValidationError('No Data - Check date or freq. ranges')
+            if self.requested_freq_low or self.requested_freq_low:
+                self.cache_form._errors["freq_low"] = forms.ValidationError('No Data - Check date or freq. ranges')
+                self.cache_form._errors["freq_high"] = forms.ValidationError('No Data - Check date or freq. ranges')
             return render(self.request, "rfi/query.html", {"form": self.cache_form})
 
     def create_multi_line(self, div, data):
