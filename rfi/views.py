@@ -249,7 +249,7 @@ class DoGraph(View):
     def create_color_plot(self, div, data):
         # make the color plot/s and add them to div
         session = 1
-        dates_string = [str(i.date()) for i in self.unique_days]
+        [str(i.date()) for i in self.unique_days]
         fig = make_subplots(rows=len(self.unique_days), cols=1, shared_xaxes=True, x_title="Frequency (MHz)")
 
         for self.unique_day in self.unique_days:
@@ -294,7 +294,7 @@ class DoGraph(View):
 
             fig.append_trace(go.Heatmap(
                 x=freq_bins,
-                y=dates_string,
+                y=[str(self.unique_day.date())],
                 z=to_plot,
                 colorscale='Viridis',
                 coloraxis="coloraxis"
