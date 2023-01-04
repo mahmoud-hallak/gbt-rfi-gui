@@ -13,7 +13,7 @@ from scipy.signal import find_peaks
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.db.models import FloatField, Max, Min
+from django.db.models import FloatField
 from django.db.models.functions import Cast
 from django.shortcuts import render
 from django.utils.timezone import make_aware
@@ -65,8 +65,6 @@ class DoGraph(View):
             self.cache_form = QueryForm(self.request.GET)
             if self.cache_form.is_valid():
                 print("passed inspection. querying now")
-
-        #Frontend.objects.all()
 
         # gather all the fields
         self.requested_receivers = self.request.GET.getlist("receivers")
@@ -129,7 +127,7 @@ class DoGraph(View):
         # channels = channels.annotate(mod=F("id") % 10).filter(mod=0)
         # channels = channels.order_by("scan__datetime", "channel")
         channels = channels.order_by("frequency")
-
+        '''
         channel_aggregates = (
             channels.values("scan__datetime")
             .distinct()
@@ -140,11 +138,11 @@ class DoGraph(View):
         )
         self.start = channel_aggregates["first_scan_start"]
         self.end = channel_aggregates["last_scan_start"]
+        '''
 
         return channels
 
     def create_avg_line(self, channels):
-
         # set the prominence
         prom_by_rcvr = {
         "Prime Focus 1": 0.17,
@@ -171,10 +169,10 @@ class DoGraph(View):
             intensity_float=Cast("intensity", FloatField()),
         ).values_list("freq_float", "intensity_float")
 
-        print(f"Plotting {len(data)} points")
+        freq_vs_intensity = np.array(data)
 
-        if data.exists():
-            freq_vs_intensity = np.array(data)
+        if freq_vs_intensity.any():
+            #freq_vs_intensity = np.array(data)
             # Find local maxima (peaks) in intensities (second axis). This seems to reduce
             # the data by roughly a third, but doesn't throw away any spikes
             # prominence can reduce the data even further while preserving the peaks
@@ -182,11 +180,13 @@ class DoGraph(View):
             all_local_maximum_intensities = freq_vs_intensity[intensity_peaks]
             # NOTE: Can toggle this to make sure the shape stays the same
             # to_plot = freq_vs_intensity
-            MAX_POINTS_TO_PLOT = 750_000
+            MAX_POINTS_TO_PLOT = 500_000
             to_plot = all_local_maximum_intensities
             if len(to_plot) > MAX_POINTS_TO_PLOT:
-                cache_form._errors["receivers"] = forms.ValidationError(f"Too many points: {len(to_plot):,}. Must be <{MAX_POINTS_TO_PLOT:,}. Select smaller ranges.")
-                return render(self.request, "rfi/query.html", {"form": cache_form})
+                self.cache_form._errors["receivers"] = forms.ValidationError(f"Too many points: {len(to_plot):,}. Must be <{MAX_POINTS_TO_PLOT:,}. Select smaller ranges.")
+                div = None
+                self.error_data_str = 'Maximum Data Queried - Reduce date or freq. ranges'
+                return div, data
 
             print(f"Actual # {len(to_plot)}")
 
@@ -206,12 +206,14 @@ class DoGraph(View):
                 y=to_plot[:,1],
                 marker={"color": "black", "symbol": "circle", "size": 3},
             )
-            if self.start == self.end:
-                self.date_range_str = self.start.strftime("%m/%d/%Y")
+            start = data["scan__datetime"].min()
+            end = data["scan__datetime"].max()
+            if start == end:
+                self.date_range_str = start.date()
             else:
                 self.date_range_str = (
-                    f"{self.start.strftime('%m/%d/%Y')} - "
-                    f"{self.end.strftime('%m/%d/%Y')}"
+                    f"{start.date()} - "
+                    f"{end.date()}"
                 )
             self.freq_range_str = f"{data.frequency.min():.2f}-{data.frequency.max():.2f}"
             rcvr_names = {
@@ -242,6 +244,7 @@ class DoGraph(View):
         else:
             # set div none, then skip color plot
             div = None
+            self.error_data_str = 'No Data - Check date or freq. ranges'
             self.plot_it(div)
 
         return div, data
@@ -320,12 +323,13 @@ class DoGraph(View):
         if div:
             return render(self.request, "rfi/query.html", {"graphs": div, "form": self.cache_form})
         else:
+            # catch all the posibilities of bad data
             if self.requested_start:
-                self.cache_form._errors["start"] = forms.ValidationError('No Data - Check date or freq. ranges')
-                self.cache_form._errors["end"] = forms.ValidationError('No Data - Check date or freq. ranges')
+                self.cache_form._errors["start"] = forms.ValidationError(self.error_data_str)
+                self.cache_form._errors["end"] = forms.ValidationError(self.error_data_str)
             if self.requested_freq_low or self.requested_freq_low:
-                self.cache_form._errors["freq_low"] = forms.ValidationError('No Data - Check date or freq. ranges')
-                self.cache_form._errors["freq_high"] = forms.ValidationError('No Data - Check date or freq. ranges')
+                self.cache_form._errors["freq_low"] = forms.ValidationError(self.error_data_str)
+                self.cache_form._errors["freq_high"] = forms.ValidationError(self.error_data_str)
             return render(self.request, "rfi/query.html", {"form": self.cache_form})
 
     def create_multi_line(self, div, data):
