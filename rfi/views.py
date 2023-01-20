@@ -107,7 +107,7 @@ class DoGraph(View):
                 )
                 channels = channels.filter(scan__datetime=self.nearest_date)
             except:
-                raise ValidationError(_("No Data previous to your specified date."), code="NoDataInRange")
+                raise ValidationError(("No Data previous to your specified date."), code="NoDataInRange")
 
         elif self.requested_start or self.requested_end:
             if self.requested_start:
