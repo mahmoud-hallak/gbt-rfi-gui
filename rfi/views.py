@@ -19,7 +19,7 @@ from django.utils.timezone import make_aware
 from django.views import View
 
 from .forms import QueryForm
-from .models import Frequency
+from .models import Frequency, Scan
 
 logger = logging.getLogger(__name__)
 
@@ -96,11 +96,12 @@ class DoGraph(View):
             channels = channels.filter(frequency__lte=float(self.requested_freq_high))
 
         # then we can either use the nearest date or a date range
+        scans = Scan.objects.filter(frontend__name__in=self.requested_receivers)
         if self.requested_date:
             # Get the nearest MJD (without scanning the whole table)
             try:
                 self.nearest_date = (
-                    channels.filter(scan__datetime__lte=self.requested_date)
+                    scans.filter(datetime__lte=self.requested_date)
                     .order_by("-datetime")
                     .first()
                     .datetime
@@ -116,7 +117,7 @@ class DoGraph(View):
                 channels = channels.filter(scan__datetime__lte=self.requested_end)
 
         else:
-            most_recent_scan = channels.latest("scan__datetime")
+            most_recent_scan = scans.latest("datetime")
             channels = channels.filter(scan=most_recent_scan)
 
 
