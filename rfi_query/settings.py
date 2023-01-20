@@ -16,8 +16,6 @@ import environ
 
 from email.utils import getaddresses
 
-# set up the email logs
-ADMINS = getaddresses([env("DJANGO_ADMINS")])
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,6 +59,9 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+
+# set up the email logs
+ADMINS = getaddresses([env("DJANGO_ADMINS")])
 
 # CONN_MAX_AGE = None
 
