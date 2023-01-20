@@ -14,6 +14,11 @@ from pathlib import Path
 
 import environ
 
+from email.utils import getaddresses
+
+# set up the email logs
+ADMINS = getaddresses([env("DJANGO_ADMINS")])
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 SETTINGS_DIR = Path(__file__).resolve().parent
