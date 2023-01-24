@@ -130,6 +130,17 @@ class DoGraph(View):
         return channels
 
     def create_avg_line(self, channels):
+
+        # check that we aren't querying too much even before find_peaks reduction
+        data = [] # this is just a placeholder if there is an error
+        MAX_POINTS_TO_QUERY = 1_500_000
+        if channels.count() > MAX_POINTS_TO_QUERY:
+            self.cache_form._errors["receivers"] = forms.ValidationError(f"Too many points queried by a factor of \
+                ~{round(channels.count()/MAX_POINTS_TO_QUERY/2, 1)}. Please select smaller ranges.")
+            div = None
+            self.error_data_str = 'Maximum Data Queried - Reduce date or freq. ranges'
+            return div, data
+
         # set the prominence
         prom_by_rcvr = {
         "Prime Focus 1": 0.17,
