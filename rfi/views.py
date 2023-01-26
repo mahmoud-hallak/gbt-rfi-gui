@@ -132,34 +132,34 @@ class DoGraph(View):
     def create_avg_line(self, channels):
 
         # check that we aren't querying too much even before find_peaks reduction
-        data = [] # this is just a placeholder if there is an error
+        refined_data = [] # this is just a placeholder if there is an error
         MAX_POINTS_TO_QUERY = 1_500_000
         if channels.count() > MAX_POINTS_TO_QUERY:
             self.cache_form._errors["receivers"] = forms.ValidationError(f"Too many points queried by a factor of \
                 ~{round(channels.count()/MAX_POINTS_TO_QUERY/2, 1)}. Please select smaller ranges.")
             div = None
             self.error_data_str = 'Maximum Data Queried - Reduce date or freq. ranges'
-            return div, data
+            return div, refined_data
 
         # set the prominence
         prom_by_rcvr = {
-        "Prime Focus 1": 0.17,
-        "Rcvr_800": 0.17,
-        "Prime Focus 2": 0.17,
-        "Rcvr1_2": 10,
-        "Rcvr2_3": 0.17,
-        "Rcvr4_6": 0.17,
-        "Rcvr8_10": 0.17,
-        "Rcvr12_18": 0.17,
-        "RcvrArray18_26": 0.17,
-        "Rcvr26_40": 0.17,
-        "Rcvr40_52": 0.17,
+        "Prime Focus 1": 0.001,
+        "Rcvr_800": 0.001,
+        "Prime Focus 2": 0.001,
+        "Rcvr1_2": 0.1,
+        "Rcvr2_3": 0.001,
+        "Rcvr4_6": 0.001,
+        "Rcvr8_10": 0.001,
+        "Rcvr12_18": 0.001,
+        "RcvrArray18_26": 0.001,
+        "Rcvr26_40": 0.001,
+        "Rcvr40_52": 0.001,
         }
 
         proms=[]
         for rcvr in self.requested_receivers:
             proms.append(prom_by_rcvr[rcvr])
-        prominence_val = max(proms)
+        prominence_val = min(proms)
         print(f"this is the prom val: {prominence_val}")
 
         # set up the data to be used
@@ -171,7 +171,7 @@ class DoGraph(View):
             # Find local maxima (peaks) in intensities (second axis). This seems to reduce
             # the data by roughly a third, but doesn't throw away any spikes
             # prominence can reduce the data even further while preserving the peaks
-            intensity_peaks = find_peaks(data.intensity)[0]#, prominence=prominence_val)[0]
+            intensity_peaks = find_peaks(data.intensity, prominence=prominence_val)[0]
             #print(f"{data.intensity.head(10)} {intensity_peaks[:10]}")
             all_local_maximum_intensities = data[data.index.isin(intensity_peaks)]
             # NOTE: Can toggle this to make sure the shape stays the same
