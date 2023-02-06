@@ -133,7 +133,8 @@ class DoGraph(View):
 
         # check that we aren't querying too much even before find_peaks reduction
         refined_data = [] # this is just a placeholder if there is an error
-        MAX_POINTS_TO_QUERY = 1_500_000
+        MAX_POINTS_TO_QUERY = 3_000_000
+        print(channels.count())
         if channels.count() > MAX_POINTS_TO_QUERY:
             self.cache_form._errors["receivers"] = forms.ValidationError(f"Too many points queried by a factor of \
                 ~{round(channels.count()/MAX_POINTS_TO_QUERY/2, 1)}. Please select smaller ranges.")
