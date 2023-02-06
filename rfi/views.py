@@ -145,6 +145,7 @@ class DoGraph(View):
         # set the prominence
         prom_by_rcvr = {
         "Prime Focus 1": 0.001,
+        "RcvrPF_1": 0.05,
         "Rcvr_800": 0.001,
         "Prime Focus 2": 0.001,
         "Rcvr1_2": 0.03,
@@ -154,7 +155,7 @@ class DoGraph(View):
         "Rcvr12_18": 0.001,
         "RcvrArray18_26": 0.001,
         "Rcvr26_40": 0.001,
-        "Rcvr40_52": 0.001,
+        "Rcvr40_52": 0.0001,
         }
 
         proms=[]
@@ -294,6 +295,7 @@ class DoGraph(View):
         self.freq_range_str = f'{refined_data["frequency"].min():.2f}-{refined_data["frequency"].max():.2f}'
         rcvr_names = {
             "Prime Focus 1": "PF1",
+            "RcvrPF_1": "PF1",
             "Rcvr_800": "PF1_800",
             "Prime Focus 2": "PF2",
             "Rcvr1_2": "L-Band",

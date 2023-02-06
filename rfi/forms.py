@@ -50,7 +50,8 @@ class QueryFormHelper(FormHelper):
 
 
 class QueryForm(forms.Form):
-    friendly_names = (("Prime Focus 1","Prime Focus 1 - 342"),
+    friendly_names = (("RcvrPF_1","Prime Focus 1"),
+    ("Prime Focus 1","Prime Focus 1 - 342"),
     ("Rcvr_800","Prime Focus 1 - 800"),
     ("Prime Focus 2","Prime Focus 2"),
     ("Rcvr1_2","L-Band"),
@@ -61,7 +62,6 @@ class QueryForm(forms.Form):
     ("RcvrArray18_26","KFPA"),
     ("Rcvr26_40","Ka-Band"),
     ("Rcvr40_52","Q-Band"))
-
 
     receivers = forms.MultipleChoiceField(
         choices= friendly_names, label="Receivers", required=True
