@@ -146,7 +146,7 @@ class DoGraph(View):
         "Prime Focus 1": 0.001,
         "Rcvr_800": 0.001,
         "Prime Focus 2": 0.001,
-        "Rcvr1_2": 0.1,
+        "Rcvr1_2": 0.03,
         "Rcvr2_3": 0.001,
         "Rcvr4_6": 0.001,
         "Rcvr8_10": 0.001,
