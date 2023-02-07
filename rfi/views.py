@@ -211,6 +211,7 @@ class DoGraph(View):
             fig_avg.update_traces(line_color="black")
 
             figure = go.Figure(data=fig_avg.data + fig_session.data, layout=layout)
+            figure.update_xaxes(tickformat = "digit")
             div.append(opy.plot(figure, output_type='div'))
 
         else:
@@ -281,9 +282,10 @@ class DoGraph(View):
                 title=title_color,
                 title_x=0.5,
                 coloraxis = {'colorscale':'viridis'},
-                height = 100+100*session-1
+                height = 100+100*session-1,
                 )
             fig.update_layout(layout)
+            fig.update_xaxes(tickformat = "digit")
             fig.update_yaxes(tickformat="%b %d %Y", dtick=86400000)
 
         div.append(opy.plot(fig, auto_open=False, output_type="div"))
