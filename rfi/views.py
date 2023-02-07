@@ -66,6 +66,9 @@ class DoGraph(View):
 
         # gather all the fields
         self.requested_receivers = self.request.GET.getlist("receivers")
+        if "RcvrPF_1" in self.requested_receivers:
+            self.requested_receivers.extend(["Prime Focus 1", "Rcvr_800"])
+
         self.requested_freq_low = self.request.GET.get("freq_low", None)
         self.requested_freq_high = self.request.GET.get("freq_high", None)
 
@@ -144,9 +147,9 @@ class DoGraph(View):
 
         # set the prominence
         prom_by_rcvr = {
-        "Prime Focus 1": 0.001,
         "RcvrPF_1": 0.05,
-        "Rcvr_800": 0.001,
+        "Rcvr_800": 0.05,
+        "Prime Focus 1": 0.05,
         "Prime Focus 2": 0.001,
         "Rcvr1_2": 0.03,
         "Rcvr2_3": 0.001,
@@ -294,9 +297,7 @@ class DoGraph(View):
             )
         self.freq_range_str = f'{refined_data["frequency"].min():.2f}-{refined_data["frequency"].max():.2f}'
         rcvr_names = {
-            "Prime Focus 1": "PF1",
             "RcvrPF_1": "PF1",
-            "Rcvr_800": "PF1_800",
             "Prime Focus 2": "PF2",
             "Rcvr1_2": "L-Band",
             "Rcvr2_3": "S-Band",
@@ -307,8 +308,10 @@ class DoGraph(View):
             "Rcvr26_40": "Ka-Band",
             "Rcvr40_52": "Q-Band",
             }
-        requested_receivers_name=[rcvr_names[i] for i in self.requested_receivers]
+
+        requested_receivers_name=[rcvr_names[i] for i in self.requested_receivers if i not in ["Prime Focus 1", "Rcvr_800"]]
         self.rcvr_str = ", ".join(requested_receivers_name)
+
         title_line = "RFI Environment at Green Bank Observatory <br> <i>%s    %s    %s MHz</i>" % (self.date_range_str, self.rcvr_str, self.freq_range_str)
         layout = go.Layout(
             title=title_line,
