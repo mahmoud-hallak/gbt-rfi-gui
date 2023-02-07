@@ -128,7 +128,8 @@ class DoGraph(View):
         #       sampling of every 10th row
         # channels = channels.annotate(mod=F("id") % 10).filter(mod=0)
         # channels = channels.order_by("scan__datetime", "channel")
-        channels = channels.order_by("frequency")
+        # channels = channels.order_by("frequency")
+
 
         return channels
 
@@ -137,10 +138,15 @@ class DoGraph(View):
         # check that we aren't querying too much even before find_peaks reduction
         refined_data = [] # this is just a placeholder if there is an error
         MAX_POINTS_TO_QUERY = 3_000_000
-        print(channels.count())
+
+        self.sessions = [i[0] for i in channels.values_list("scan__session__name").distinct()]
+
         if channels.count() > MAX_POINTS_TO_QUERY:
-            self.cache_form._errors["receivers"] = forms.ValidationError(f"Too many points queried by a factor of \
-                ~{round(channels.count()/MAX_POINTS_TO_QUERY/2, 1)}. Please select smaller ranges.")
+            print(f"Points attempted: {channels.count()}")
+            self.cache_form._errors["receivers"] = forms.ValidationError(f"Too many points queried, you can query for \
+                {int(MAX_POINTS_TO_QUERY/(channels.count()/len(self.sessions)))} sessions with this configuration. \
+                Adjust date to limit sessions or freq. range to limit data. \
+                Sessions in your current query include: {' '.join(self.sessions)}")
             div = None
             self.error_data_str = 'Maximum Data Queried - Reduce date or freq. ranges'
             return div, refined_data
@@ -218,7 +224,6 @@ class DoGraph(View):
     def create_color_plot(self, div, refined_data):
         # make the color plot/s and add them to div
         session = 1
-        [str(i.date()) for i in self.unique_days]
         fig = make_subplots(rows=len(self.unique_days), cols=1, shared_xaxes=True, x_title="Frequency (MHz)")
 
         for self.unique_day in self.unique_days:
@@ -312,7 +317,8 @@ class DoGraph(View):
         requested_receivers_name=[rcvr_names[i] for i in self.requested_receivers if i not in ["Prime Focus 1", "Rcvr_800"]]
         self.rcvr_str = ", ".join(requested_receivers_name)
 
-        title_line = "RFI Environment at Green Bank Observatory <br> <i>%s    %s    %s MHz</i>" % (self.date_range_str, self.rcvr_str, self.freq_range_str)
+        title_line = "RFI Environment at Green Bank Observatory <br> <i>%s    %s    %s MHz</i> \
+            " % (self.date_range_str, self.rcvr_str, self.freq_range_str)
         layout = go.Layout(
             title=title_line,
             title_x=0.5,
