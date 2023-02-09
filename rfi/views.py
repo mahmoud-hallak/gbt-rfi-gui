@@ -211,7 +211,7 @@ class DoGraph(View):
             fig_avg.update_traces(line_color="black")
 
             figure = go.Figure(data=fig_avg.data + fig_session.data, layout=layout)
-            figure.update_xaxes(tickformat = "digit")
+            figure.update_xaxes(tickformat = "digit", range=[self.freq_min,self.freq_max])
             div.append(opy.plot(figure, output_type='div'))
 
         else:
@@ -272,7 +272,7 @@ class DoGraph(View):
                 y=[str(self.unique_day.date())],
                 z=to_plot,
                 colorscale='Viridis',
-                coloraxis="coloraxis", connectgaps = True,
+                coloraxis="coloraxis", connectgaps = True
                 ), row=session, col=1,
                 )
 
@@ -285,7 +285,7 @@ class DoGraph(View):
                 height = 100+100*session-1,
                 )
             fig.update_layout(layout)
-            fig.update_xaxes(tickformat = "digit")
+            fig.update_xaxes(tickformat = "digit", range=[self.freq_min,self.freq_max])
             fig.update_yaxes(tickformat="%b %d %Y", dtick=86400000)
 
         div.append(opy.plot(fig, auto_open=False, output_type="div"))
@@ -302,7 +302,13 @@ class DoGraph(View):
                 f"{start.date()} - "
                 f"{end.date()}"
             )
-        self.freq_range_str = f'{refined_data["frequency"].min():.2f}-{refined_data["frequency"].max():.2f}'
+        if self.requested_freq_low: self.freq_min = self.requested_freq_low
+        else: self.freq_min = refined_data["frequency"].min()
+
+        if self.requested_freq_high: self.freq_max = self.requested_freq_high
+        else: self.freq_max = refined_data["frequency"].max()
+
+        self.freq_range_str = f'{self.freq_min}-{self.freq_max}'
         rcvr_names = {
             "RcvrPF_1": "PF1",
             "Prime Focus 2": "PF2",
@@ -325,7 +331,7 @@ class DoGraph(View):
             title=title_line,
             title_x=0.5,
             xaxis={"title": "Frequency (MHz)"},
-            yaxis={"title": "Intensity (Jy)"},
+            yaxis={"title": "Intensity (Jy)"}
         )
 
         return layout
