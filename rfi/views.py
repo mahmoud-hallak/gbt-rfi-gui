@@ -282,11 +282,12 @@ class DoGraph(View):
                 title=title_color,
                 title_x=0.5,
                 coloraxis = {'colorscale':'viridis'},
-                height = 100+100*session-1,
+                height = 100+100*session-1
                 )
             fig.update_layout(layout)
             fig.update_xaxes(tickformat = "digit", range=[self.freq_min,self.freq_max])
             fig.update_yaxes(tickformat="%b %d %Y", dtick=86400000)
+            fig.update_coloraxes(colorbar_title_text="log(flux) [Jy]")
 
         div.append(opy.plot(fig, auto_open=False, output_type="div"))
         return div
