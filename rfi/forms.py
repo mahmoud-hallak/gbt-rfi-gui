@@ -109,14 +109,14 @@ class QueryForm(forms.Form):
           self.add_error('end', forms.ValidationError('Max time span is 1 year.'))
 
       if (date and start) or (date and end):
-        self.add_error('start', forms.ValidationError('Specify a date of interest OR date range'))
-        self.add_error('end', forms.ValidationError('Specify a date of interest OR date range'))
-        self.add_error('date', forms.ValidationError('Specify a date of interest OR date range'))
+        self.add_error('start', forms.ValidationError('Specify a project date OR date range'))
+        self.add_error('end', forms.ValidationError('Specify a project date OR date range'))
+        self.add_error('date', forms.ValidationError('Specify a project date OR date range'))
 
       if not date and not start and not end:
-        self.add_error('start', forms.ValidationError('Specify a date of interest OR date range'))
-        self.add_error('end', forms.ValidationError('Specify a date of interest OR date range'))
-        self.add_error('date', forms.ValidationError('Specify a date of interest OR date range'))
+        self.add_error('start', forms.ValidationError('Specify a project date OR date range'))
+        self.add_error('end', forms.ValidationError('Specify a project date OR date range'))
+        self.add_error('date', forms.ValidationError('Specify a project date OR date range'))
 
       return self.cleaned_data
 
