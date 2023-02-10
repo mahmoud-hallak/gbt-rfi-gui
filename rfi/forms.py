@@ -29,7 +29,7 @@ class QueryFormHelper(FormHelper):
             css_class="row",
         ),
         Div(
-            Div("date", css_class="col"),
+            Div("date", css_class="col", title="something"),
             css_class="row",
         ),
         Div(
@@ -68,7 +68,8 @@ class QueryForm(forms.Form):
     freq_high = forms.FloatField(label="High Frequency", required=False,
       error_messages={'freq_low':"Freq_high is lower than freq_low"}, widget=forms.TextInput())
     freq_low = forms.FloatField(label="<hr> Low Frequency", required=False, error_messages={"too_low":"Your high is too low"}, widget=forms.TextInput())
-    date = forms.DateField(label="<hr> Project Date", required=False, widget=forms.TextInput(attrs={"type":"date"}))
+    date = forms.DateField(label="<hr> <center> Specify either Project Date of interest <b>OR</b> Date Range below. </center> Project Date", \
+        required=False, widget=forms.TextInput(attrs={"type":"date"}))
     start = forms.DateField(label="<hr> Start Date", required=False, widget=forms.TextInput(attrs={"type":"date"}))
     end = forms.DateField(label="End Date", required=False, widget=forms.TextInput(attrs={"type":"date"}))
 
