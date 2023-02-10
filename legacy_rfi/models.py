@@ -58,3 +58,33 @@ class MasterRfiCatalog(models.Model):
     class Meta:
         managed = False
         db_table = "Master_RFI_Catalog"
+
+class processed_projid(models.Model):
+    projid = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.filename
+
+    class Meta:
+        managed = False
+        db_table = "processed_projid"
+
+class bad_files_db(models.Model):
+    filename = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.filename
+
+    class Meta:
+        managed = False
+        db_table = "Bad_files"
+
+class flagged_db(models.Model):
+    projid = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.filename
+
+    class Meta:
+        managed = False
+        db_table = "Master_RFI_Flagged_Catalog"

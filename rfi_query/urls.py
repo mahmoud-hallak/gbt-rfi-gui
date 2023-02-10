@@ -1,6 +1,6 @@
 from django.urls import include, path
-from rest_framework import routers
-from legacy_rfi import views
+
+from rfi import views
 
 # router = routers.DefaultRouter()
 # router.register(r'rfi', views.MasterRfiCatalogViewSet)
@@ -10,6 +10,6 @@ from legacy_rfi import views
 urlpatterns = [
     # path('', include(router.urls)),
     # path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('query/', views.query),
-    path('graph/', views.graph),
+    path('', views.landing_page, name="rfi_webpage"),
+    path('__debug__/', include('debug_toolbar.urls')),
 ]

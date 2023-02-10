@@ -1,56 +1,140 @@
+{% load static %}
+{% load crispy_forms_tags %}
+
 <!DOCTYPE html>
-<html>
+
+<link rel="stylesheet" type="text/css" href="{%static 'rfi/style.css' %}">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+<html style="min-width: 750px">
   <head>
     <meta charset="utf-8">
-    <title>PLOTS</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
-  </head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RFI Query</title>
+    <style>
+        .navbar {margin-bottom:0px;}
+        /* Center the loader */
+        #loader {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          z-index: 1;
+          width: 120px;
+          height: 120px;
+          margin: -76px 0 0 -76px;
+          border: 16px solid #f3f3f3;
+          border-radius: 50%;
+          border-top: 16px solid #3498db;
+          -webkit-animation: spin 2s linear infinite;
+          animation: spin 2s linear infinite;
+        }
 
-  <body>
-    <div class="container">
-    <form action="/graph/" method="get">
-      <div class="row">
-        <div class="col">
-          <div class="mb-3">
-            <label for="receivers" class="form-label">Receivers</label>
-            <select name="receivers" id="receivers" class="form-select" multiple aria-label="multiple select example">
-              {% for name, value in form.fields.receivers.choices %}
-                <option value="{{value}}">{{name}}</option>
-              {% endfor %}
-            </select>
-            <div id="receiversHelp" class="form-text">Receivers</div>
-          </div>
+        @-webkit-keyframes spin {
+          0% { -webkit-transform: rotate(0deg); }
+          100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* Add animation to "page content" */
+        .animate-bottom {
+          position: relative;
+          -webkit-animation-name: animatebottom;
+          -webkit-animation-duration: 1s;
+          animation-name: animatebottom;
+          animation-duration: 1s
+        }
+
+        @-webkit-keyframes animatebottom {
+          from { bottom:-100px; opacity:0 }
+          to { bottom:0px; opacity:1 }
+        }
+
+        @keyframes animatebottom {
+          from{ bottom:-100px; opacity:0 }
+          to{ bottom:0; opacity:1 }
+        }
+
+        #myDiv {
+          display: none;
+          text-align: center;
+        }
+
+        html,
+              body {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+              }
+        hr {
+          margin:  0.5rem 0;
+          background-color: whitesmoke;
+        }
+    </style>
+
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #3c2a4b;">
+      <a class="navbar-brand" href="/">
+        <img src="../../static/rfi/images/GREAT_words_transparent_ombre.png" width="250" height="96" class="d-inline-block align-top" alt="Logo" filter="contrast:1.75">
+      </a>
+
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-item nav-link active" href="/" target="_blank">Home <span class="sr-only"></span></a>
+          <a class="nav-item nav-link" href="https://www.gb.nrao.edu/IPG/" target="_blank">IPG Information</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/rfi-scans-and-known-sources/" target="_blank">RFI Known Sources</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/rfi-gui-user-guide" target="_blank">GBT-RFI-GUI</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/science/gbt-observers/rfi-mitigation/" target="_blank">RFI Mitigation</a>
+          <a class="nav-item nav-link" href="https://greenbankobservatory.org/science/gbt-observers/gbt-receivers-and-frequency-ranges/" target="_blank">RCVR Frequency Ranges</a>
         </div>
-        <div class="col">
-          <div class="mb-3">
-            <label for="start" class="form-label">Start</label>
-            <input name="start" id="start" type="text" class="form-control" placeholder="YYYY/mm/dd [HH:MM:SS]" id="start" aria-describedby="startHelp">
-            <div id="startHelp" class="form-text">Start date</div>
-          </div>
-          <div class="mb-3">
-            <label for="end" class="form-label">End</label>
-            <input name="end" id="end" type="text" class="form-control" placeholder="YYYY/mm/dd [HH:MM:SS]" id="end" aria-describedby="endHelp">
-            <div id="endHelp" class="form-text">End date</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="mb-3">
-            <label for="freq_low" class="form-label">Frequency Low (MHz)</label>
-            <input name="freq_low" id="freq_low" type="text" class="form-control" placeholder="" id="freq_low" aria-describedby="freq_low_help">
-            <div id="freq_low_help" class="form-text">Bottom of frequency range</div>
-          </div>
-          <div class="mb-3">
-            <label for="freq_high" class="form-label">Frequency High (MHz)</label>
-            <input name="freq_high" id="freq_high" type="text" class="form-control" placeholder="" id="freq_high" aria-describedby="freq_high_help">
-            <div id="freq_high_help" class="form-text">Top of frequency range</div>
-          </div>
-        </div>
-        
       </div>
 
-      <input type="submit" class="btn btn-primary">Submit</input>
-    </form>
+    </nav>
 
+  </head>
+
+
+
+  <body style="background-color:#23182b">
+    <div class="d-flex bd-highlight" style="height:110%; min-height: 680px">
+      <div class="order-1 p-2" style="width: 30%; min-width: 250px; max-width:375px;">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+          <svg class="bi me-2" width="24" height="0"><use xlink:href="#bootstrap"/></svg>
+        </a>
+        <hr>
+          <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+             <div class="container" style="color:white; height:120%; min-height: 680px; border-width: 2px; padding-top: 10px; padding-bottom: 10px; border-color: #584F5E;">
+              <form method="get">
+                {% crispy form %}
+              </form>
+             </div>
+            </li>
+          </ul>
+        <hr>
+      </div>
+
+      <div class="order-2 p-2 flex-grow-1 bd-highlight">
+        <div>
+          {% if graphs %}
+            {% for plot in graphs %}
+                {{ plot|safe}}
+            {% endfor %}
+          {% else %}
+            <center><img src="../../static/rfi/images/GREAT_words_transparent_ombre.png" alt="Placeholder" vspace=254px; filter= saturate=100%;></center>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
 
   </body>
 </html>

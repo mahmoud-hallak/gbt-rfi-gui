@@ -1,0 +1,22 @@
+h1 {
+  text-align: center;
+  font-size: 1em;
+  color: green;
+  margin-bottom: .3em;
+  text-decoration: underline;
+}
+
+.container {
+  height: 500px;
+  position: relative;
+  border: 3px solid #dbe4ed; /* Border color is optional */
+}
+
+ .center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
