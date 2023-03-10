@@ -13,3 +13,4 @@ plotly
 psycopg2<2.9
 PyQt5
 scipy
+sentry-sdk

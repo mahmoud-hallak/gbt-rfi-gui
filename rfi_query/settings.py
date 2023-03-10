@@ -10,13 +10,13 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 import os
+from email.utils import getaddresses
 from getpass import getuser
 from pathlib import Path
 
 import environ
-
-from email.utils import getaddresses
-
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +28,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, []),
     INTERNAL_IPS=(list, []),
     SENTRY_ENV=(str, f"{_user}_dev"),
+    SENTRY_TRACE_SAMPLE_RATE=(float, 0.1),
     STATIC_ROOT=(str, None),
 )
 _env_file_template_path = Path(SETTINGS_DIR, ".env.template")
@@ -188,3 +189,16 @@ REST_FRAMEWORK = {
 INTERNAL_IPS = ["127.0.0.1", "192.33.116.243"]
 
 CRISPY_TEMPLATE_PACK = "bootstrap4"
+
+if os.environ.get("SENTRY_DSN", None):
+    sentry_sdk.init(
+        environment=env("SENTRY_ENV"),
+        integrations=[DjangoIntegration()],
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=env("SENTRY_TRACE_SAMPLE_RATE"),
+        # If you wish to associate users to errors (assuming you are using
+        # django.contrib.auth) you may enable sending PII data.
+        send_default_pii=False,
+    )
