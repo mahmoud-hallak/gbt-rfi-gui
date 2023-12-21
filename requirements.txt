@@ -77,7 +77,7 @@ plotly==5.18.0
     # via -r requirements.in
 prompt-toolkit==3.0.43
     # via ipython
-psycopg2==2.8.6
+psycopg2==2.9.9
     # via -r requirements.in
 ptyprocess==0.7.0
     # via pexpect
