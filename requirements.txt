@@ -63,7 +63,7 @@ packaging==23.2
     #   build
     #   matplotlib
     #   plotly
-pandas==2.1.4
+pandas==2.2.1
     # via -r requirements.in
 parso==0.8.3
     # via jedi
