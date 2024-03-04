@@ -2,7 +2,7 @@ django-crispy-forms<2
 django-debug-toolbar
 django-environ
 django-extensions<3
-Django<4
+Django<6
 ipdb
 ipython
 matplotlib
