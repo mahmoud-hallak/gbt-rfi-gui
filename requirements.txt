@@ -38,7 +38,7 @@ fonttools==4.47.0
     # via matplotlib
 ipdb==0.13.13
     # via -r requirements.in
-ipython==8.18.1
+ipython==8.22.2
     # via
     #   -r requirements.in
     #   ipdb
