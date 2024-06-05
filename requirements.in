@@ -10,6 +10,6 @@ mysqlclient
 pandas
 pip-tools
 plotly
-psycopg2<2.9
+psycopg2-binary==2.9.9
 PyQt5
 scipy
