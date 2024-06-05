@@ -1,14 +1,9 @@
 import datetime
 import os
 import sys
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rfi_query.settings")
-
 import django
-
 django.setup()
-
-
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,9 +11,46 @@ import pandas as pd
 
 from rfi.models import Frequency, Scan
 
+# timing
+import time
+from datetime import datetime, timedelta
+
+'''
+# TIMING RESOURCES
+https://realpython.com/python-timer/
+https://www.geeksforgeeks.org/time-command-in-linux-with-examples/
+
+# KASEY'S TEST SESSION
+time python no_gui_mockup.py TRFI_110823_S1
+
+# PROFILING
+https://docs.python.org/3/library/profile.html
+
+you can do this yourself:
+```
+$ time python -m cProfile -o profile.out "no_gui_mockup.py" TRFI_110823_S1
+```
+
+That should work, and produce a `profile.out` file
+Then you can `pip install snakeviz`
+then `$ snakeviz profile.out -b firefox` 
+'''
+
 class TimingTests():
     def __init__(self, session):
-        print("plotting")
+        # set up the timing via time.time() 
+        ## going to use t1 and t2
+        self.t1 = time.time()
+
+        # set up timing via perf_counter()
+        ## look for tik and tok
+        self.tok = time.perf_counter()
+
+        # set up timing via datetime
+        # start and end
+        self.start = datetime.now()
+
+
         self.do_plot(session)
 
     def do_plot(self, session):
@@ -93,7 +125,22 @@ class TimingTests():
         x, y, dx, dy = geom.getRect()
         # display the plot to the right of the ui
         mngr.window.setGeometry(459, 0, dx, dy)
-        plt.show()
+
+        plt.show(block=False)
+        plt.pause(0.0001)
+        plt.close()
+
+        # for the time tests
+        t2 = time.time()
+        print("\n \nThe time method tells us the time to run  is: %.4f seconds" % (t2-self.t1))
+
+        # for the perf_countertests
+        tik = time.perf_counter()
+        print("\n \nThe perf_counter method tells us the time to run is: %.4f seconds" % (tik-self.tok))
+
+        # for the datetime tests
+        end = datetime.now()
+        print("\n \nThe datetime method tells us the time to run is: ", end-self.start, "seconds")
 
 if __name__ == "__main__":
     session = sys.argv[1]
