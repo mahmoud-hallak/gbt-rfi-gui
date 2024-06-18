@@ -161,14 +161,14 @@ class Window(QMainWindow, Ui_MainWindow):
         mean_data_intens.columns = ["intensity_mean"]
         mean_data = mean_data_intens.reset_index()
         # sort values so the plot looks better, this has nothing to do with the actual data
-        sorted_mean_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
+        full_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
         # generate the description fro the plot
         # print out info for investagative GBO scientists
         print("Your requested projects are below:")
         print("Session Date \t\t Project_ID")
         print("-------------------------------------")
-        sort_by_date = sorted_mean_data.sort_values(by=["scan__session__name"])
+        sort_by_date = full_data.sort_values(by=["scan__session__name"])
         project_ids = sort_by_date["scan__session__name"].unique()
         for i in project_ids:
             proj_date = sort_by_date[
@@ -178,7 +178,7 @@ class Window(QMainWindow, Ui_MainWindow):
             #print(f"", proj_date[0], "\t\t", str(i))
 
 
-        print("Original # of points displayed: " + str(len(sorted_mean_data["intensity_mean"])))    
+        print("Original # of points displayed: " + str(len(full_data["intensity_mean"])))    
 
         #Mahmoud Edits
 
@@ -186,43 +186,43 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
         if high_resolution == "orig":
-            sorted_data = sorted_mean_data
+            filtered_data = full_data
         elif high_resolution == "scipy":
 
             #Specify an threshold of useful points 
-            intensity_threshold =  np.median(sorted_mean_data['intensity_mean'])*100
+            intensity_threshold =  np.median(full_data['intensity_mean'])*100
             print("Threshold: " + str(intensity_threshold) + "Jy")
 
             #creates the simplified dataset (This keeps the graph from losing the zero markers)
-            low_res_data =  sorted_mean_data.iloc[::int(len(sorted_mean_data["intensity_mean"])*0.005)] 
+            low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.005)] 
             print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
 
             #Finds the points above the specified threshold, 
-            peaks, _ = find_peaks(sorted_mean_data['intensity_mean'], intensity_threshold)
+            peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold)
 
             #takes out the peaks from the dataframe to be added later
-            peaks_data = sorted_mean_data.iloc[peaks] 
+            peaks_data = full_data.iloc[peaks] 
 
             #adds the high resolution peaks to the simplified dataset and sorts them
-            sorted_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
+            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
 
         elif high_resolution == "mean":
-            intensity_threshold =  np.median(sorted_mean_data['intensity_mean'])*100
+            intensity_threshold =  np.median(full_data['intensity_mean'])*100
             print("Threshold: " + str(intensity_threshold) + "Jy")
 
             #First smooth the data a bit simple mean smoothing for efficiency
-            sorted_mean_data = sorted_mean_data.rolling(window=5).mean()
+            full_data = full_data.rolling(window=5).mean()
 
             #Remove the low intenisty points
-            sorted_mean_data = sorted_mean_data[sorted_mean_data['intensity_mean'] > intensity_threshold]
+            full_data = full_data[full_data['intensity_mean'] > intensity_threshold]
 
             #Select every other point
-            sorted_data = sorted_mean_data[::int(len(sorted_mean_data["intensity_mean"])*0.001)]
+            filtered_data = full_data[::int(len(full_data["intensity_mean"])*0.00001)]
         
         print("--- %s filter time: seconds ---" % (time.time() - start_time))
 
         
-        print("Total # of points displayed: " + str(len(sorted_data["intensity_mean"])))
+        print("Total # of points displayed: " + str(len(filtered_data["intensity_mean"])))
         
 
         start_time = time.time()
@@ -230,15 +230,15 @@ class Window(QMainWindow, Ui_MainWindow):
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
-        plt.suptitle( high_resolution + ": Averaged RFI Environment at Green Bank Observatory" + "\n" + "# points: " + str(len(sorted_data["intensity_mean"])))
+        plt.suptitle( high_resolution + ": Averaged RFI Environment at Green Bank Observatory" + "\n" + "# points: " + str(len(filtered_data["intensity_mean"])))
         plt.xlabel("Frequeny (MHz)")
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
 
         plt.plot(
-            sorted_data["frequency"],
-            sorted_data["intensity_mean"],
+            filtered_data["frequency"],
+            filtered_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
@@ -252,73 +252,61 @@ class Window(QMainWindow, Ui_MainWindow):
         mngr.window.setGeometry(459, 0, dx, dy)
         
 
-        #6/10 addition, to fill in the gaps and better highlight the peak groupings without the zigzag
-        plt.fill_between(sorted_data["frequency"], sorted_data["intensity_mean"], color="black")
+        #Fills in the gaps and better highlight the peak groupings without the zigzag
+        plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
 
 
 
 
-        #Dynamic plot edits
+        #Dynamic plot
 
         def on_lims_change(event_ax):
-            #print (event_ax.get_xlim())
-
-            #window width 
-            windowsize = 640
 
 
+            #window width
+            windowsize = self.size().width()
+
+
+            #Finds the x and y limits of this new interval
             freq_min = event_ax.get_xlim()[0]
             freq_max = event_ax.get_xlim()[1]
 
             inten_min = event_ax.get_ylim()[0]
             inten_max = event_ax.get_ylim()[1]
 
-
-            pts_per_freq = len(sorted_data["frequency"])/(end_frequency-start_frequency)
-
-            pts_per_pixel = len(sorted_data["frequency"])/windowsize
-
+            #calculates the amount of displayed points on the screen
+            pts_per_freq = len(filtered_data["frequency"])/(end_frequency-start_frequency) 
+            pts_per_pixel = len(filtered_data["frequency"])/windowsize
             displayed_pts = pts_per_freq*(freq_max-freq_min)
 
-            
 
-            #makes sure there is enough points for the number of pixels on the screen
-            if( 1.3 >= (displayed_pts/windowsize)):
+            #clears the plt to regraph
+            plt.cla()
+
+
+            #Is true if there isn't enough points for pixels on the screen
+            if( 1.5 >= (displayed_pts/windowsize)):
                 
                 print("regraphing") 
 
-                plt.cla()
+                #makes a cropped df of full data
+                interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
 
 
-                #Those values are not being passed down
-                print(event_ax.get_ylim())
 
-
-                interval_data = sorted_mean_data[(sorted_mean_data['frequency'] >= freq_min) & (sorted_mean_data['frequency'] <= freq_max)]
-
-                print("int_min:", inten_min)
-                print("int_max:", inten_max)
-                
-
-                plt.plot(
-                    interval_data["frequency"],
-                    interval_data["intensity_mean"],
-                    color="black",
-                    linewidth=0.5,
-                )
-
-            # should be an elif incase the data is already displayed that way we don't waste resources
             else:
-                plt.cla()
-                plt.plot(
-                    sorted_data["frequency"],
-                    sorted_data["intensity_mean"],
-                    color="black",
-                    linewidth=0.5,
-                )
+                #pulls back the scipy filtered data
+                interval_data = filtered_data
+                plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
 
-                plt.fill_between(sorted_data["frequency"], sorted_data["intensity_mean"], color="black")
 
+            #replots
+            plt.plot(
+                interval_data["frequency"],
+                interval_data["intensity_mean"],
+                color="black",
+                linewidth=0.5,
+            )
             plt.xlim(freq_min,freq_max)  # Set xlim explicitly
             plt.ylim(inten_min, inten_max)
             ax.figure.canvas.draw_idle()
@@ -328,7 +316,8 @@ class Window(QMainWindow, Ui_MainWindow):
             ax.callbacks.connect('xlim_changed', on_lims_change)
             ax.callbacks.connect('ylim_changed', on_lims_change)
 
-    
+        
+        #checks if the axis change
         ax.callbacks.connect('xlim_changed', on_lims_change)
         ax.callbacks.connect('ylim_changed', on_lims_change)
 
