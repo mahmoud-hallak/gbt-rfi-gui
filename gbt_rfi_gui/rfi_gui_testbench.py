@@ -256,8 +256,9 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.fill_between(sorted_data["frequency"], sorted_data["intensity_mean"], color="black")
 
 
-        #Dynamic plot edits
 
+
+        #Dynamic plot edits
 
         def on_lims_change(event_ax):
             #print (event_ax.get_xlim())
@@ -265,17 +266,24 @@ class Window(QMainWindow, Ui_MainWindow):
             #window width 
             windowsize = 640
 
+
             freq_min = event_ax.get_xlim()[0]
             freq_max = event_ax.get_xlim()[1]
 
             inten_min = event_ax.get_ylim()[0]
             inten_max = event_ax.get_ylim()[1]
 
-            """
-            if the zoom size is less than 10% of the window size should be updated for other recievers 
-            because its freq dependent
-            """
-            if( 0.10 >= (event_ax.get_xlim()[1]-event_ax.get_xlim()[0])/windowsize):
+
+            pts_per_freq = len(sorted_data["frequency"])/(end_frequency-start_frequency)
+
+            pts_per_pixel = len(sorted_data["frequency"])/windowsize
+
+            displayed_pts = pts_per_freq*(freq_max-freq_min)
+
+            
+
+            #makes sure there is enough points for the number of pixels on the screen
+            if( 1.3 >= (displayed_pts/windowsize)):
                 
                 print("regraphing") 
 
