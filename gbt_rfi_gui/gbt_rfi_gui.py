@@ -218,6 +218,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
             #Specify an threshold of useful points 
             intensity_threshold =  np.median(full_data['intensity_mean'])*100
+
+            
+
             print("Threshold: " + str(intensity_threshold) + "Jy")
 
             #creates the simplified dataset (This keeps the graph from losing the zero markers)
@@ -564,9 +567,7 @@ class Window(QMainWindow, Ui_MainWindow):
         except ValueError:
             end_frequency = None
             self.end_frequency.setText("")
-        print(type(start_date))
-        print(start_date)
-        print(receivers)
+        
         self.do_plot(
             receivers=receivers,
             end_date=end_date,
