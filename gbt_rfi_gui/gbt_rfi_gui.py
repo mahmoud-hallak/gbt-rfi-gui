@@ -23,6 +23,12 @@ from PyQt5.uic import loadUiType
 
 from rfi.models import Frequency, Scan
 
+
+from scipy.signal import find_peaks
+import plotly.graph_objects as go
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
+from PyQt5.QtWidgets import QDesktopWidget
+
 # add .Ui file path here
 qtCreatorFile = os.path.dirname(__file__) + "/RFI_GUI.ui"
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
@@ -100,7 +106,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         return qs
 
-    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
+    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency, high_resolution):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
             Scan.objects.filter(datetime__lte=end_date, frontend__name__in=receivers)
@@ -153,6 +159,7 @@ class Window(QMainWindow, Ui_MainWindow):
                 start_date,
                 start_frequency,
                 end_frequency,
+                high_resolution,
             )
             # color map graph, but only if there is more than one day with data
             unique_days = data.scan__datetime.unique()
@@ -173,7 +180,7 @@ class Window(QMainWindow, Ui_MainWindow):
             )
 
     def make_plot(
-        self, receivers, data, end_date, start_date, start_frequency, end_frequency
+        self, receivers, data, end_date, start_date, start_frequency, end_frequency, high_resolution
     ):
         # make a new object with the average intensity for the 2D plot
         mean_data_intens = data.groupby(
@@ -182,7 +189,7 @@ class Window(QMainWindow, Ui_MainWindow):
         mean_data_intens.columns = ["intensity_mean"]
         mean_data = mean_data_intens.reset_index()
         # sort values so the plot looks better, this has nothing to do with the actual data
-        sorted_mean_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
+        full_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
         # generate the description fro the plot
         txt = f" \
@@ -195,7 +202,7 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Your requested projects are below:")
         print("Session Date \t\t Project_ID")
         print("-------------------------------------")
-        sort_by_date = sorted_mean_data.sort_values(by=["scan__session__name"])
+        sort_by_date = full_data.sort_values(by=["scan__session__name"])
         project_ids = sort_by_date["scan__session__name"].unique()
         for i in project_ids:
             proj_date = sort_by_date[
@@ -203,6 +210,37 @@ class Window(QMainWindow, Ui_MainWindow):
             ].scan__datetime.unique()
             proj_date = proj_date.strftime("%Y-%m-%d")
             print(f"", proj_date[0], "\t\t", str(i))
+
+
+        if high_resolution:
+            filtered_data = full_data
+        else:
+
+            #Specify an threshold of useful points 
+            intensity_threshold =  np.median(full_data['intensity_mean'])*100
+            print("Threshold: " + str(intensity_threshold) + "Jy")
+
+            #creates the simplified dataset (This keeps the graph from losing the zero markers)
+            low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.001)] 
+            print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
+
+
+            #for the really big data sets, filter by peak distance
+            if(len(full_data["intensity_mean"]) > 400000):
+                print("advanced filtering")
+                peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold, distance=5)
+            else:
+                peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold)
+
+            #takes out the peaks from the dataframe to be added later
+            peaks_data = full_data.iloc[peaks] 
+
+            #adds the high resolution peaks to the simplified dataset and sorts them
+            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
+
+        print("Original # of points displayed: " + str(len(full_data["intensity_mean"])))
+
+        print(" - Filtered # of points displayed: " + str(len(filtered_data["intensity_mean"])))
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
@@ -212,6 +250,9 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
+
+        plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
+
 
         # Create the annotations for RFI, only plot if user selects
         if self.yes_annotate.isChecked():
@@ -260,10 +301,12 @@ class Window(QMainWindow, Ui_MainWindow):
 
                 fig.canvas.mpl_connect("button_press_event", onclick)
 
-        # Plot one or both the line plot and the annotations
+
+
+
         plt.plot(
-            sorted_mean_data["frequency"],
-            sorted_mean_data["intensity_mean"],
+            filtered_data["frequency"],
+            filtered_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
@@ -275,6 +318,71 @@ class Window(QMainWindow, Ui_MainWindow):
         x, y, dx, dy = geom.getRect()
         # display the plot to the right of the ui
         mngr.window.setGeometry(459, 0, dx, dy)
+
+
+        def on_lims_change(event_ax):
+
+
+            #window width
+            windowsize = self.size().width()
+
+
+            #Finds the x and y limits of this new interval
+            freq_min = event_ax.get_xlim()[0]
+            freq_max = event_ax.get_xlim()[1]
+
+            inten_min = event_ax.get_ylim()[0]
+            inten_max = event_ax.get_ylim()[1]
+
+            #calculates the amount of displayed points on the screen
+            pts_per_freq = len(filtered_data["frequency"])/(end_frequency-start_frequency) 
+            pts_per_pixel = len(filtered_data["frequency"])/windowsize
+            displayed_pts = pts_per_freq*(freq_max-freq_min)
+
+
+            #clears the plt to regraph
+            plt.cla()
+
+
+            #Is true if there isn't enough points for pixels on the screen
+            if( 1.5 >= (displayed_pts/windowsize)):
+                
+                print("regraphing") 
+
+                #makes a cropped df of full data
+                interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
+
+
+
+            else:
+                #pulls back the scipy filtered data
+                interval_data = filtered_data
+                plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
+
+
+            #replots
+            plt.plot(
+                interval_data["frequency"],
+                interval_data["intensity_mean"],
+                color="black",
+                linewidth=0.5,
+            )
+            plt.xlim(freq_min,freq_max)  # Set xlim explicitly
+            plt.ylim(inten_min, inten_max)
+            ax.figure.canvas.draw_idle()
+
+
+            # The only way to get it to update again was putting those commands in this def
+            ax.callbacks.connect('xlim_changed', on_lims_change)
+            ax.callbacks.connect('ylim_changed', on_lims_change)
+
+                
+        #checks if the axis change
+        ax.callbacks.connect('xlim_changed', on_lims_change)
+        ax.callbacks.connect('ylim_changed', on_lims_change)
+
+        # Plot one or both the line plot and the annotations
+        
         plt.show()
 
     def make_color_plot(self, data, unique_days, receivers, end_date, start_date):
@@ -458,13 +566,16 @@ class Window(QMainWindow, Ui_MainWindow):
         except ValueError:
             end_frequency = None
             self.end_frequency.setText("")
-
+        print(type(start_date))
+        print(start_date)
+        print(receivers)
         self.do_plot(
             receivers=receivers,
             end_date=end_date,
             start_date=start_date,
             start_frequency=start_frequency,
             end_frequency=end_frequency,
+            high_resolution=False,
         )
 
         # change the color so the user knows that it is done plotting
