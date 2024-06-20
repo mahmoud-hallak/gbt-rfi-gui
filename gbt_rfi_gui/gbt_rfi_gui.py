@@ -222,7 +222,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
             #creates the simplified dataset (This keeps the graph from losing the zero markers)
             low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.001)] 
-            print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
+            #print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
 
 
             #for the really big data sets, filter by peak distance
@@ -238,9 +238,9 @@ class Window(QMainWindow, Ui_MainWindow):
             #adds the high resolution peaks to the simplified dataset and sorts them
             filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
 
-        print("Original # of points displayed: " + str(len(full_data["intensity_mean"])))
+        print("- Original # of points displayed: " + str(len(full_data["intensity_mean"])))
 
-        print(" - Filtered # of points displayed: " + str(len(filtered_data["intensity_mean"])))
+        print(" - Filtered # displayed: " + str(len(filtered_data["intensity_mean"])))
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
@@ -347,11 +347,9 @@ class Window(QMainWindow, Ui_MainWindow):
             #Is true if there isn't enough points for pixels on the screen
             if( 1.5 >= (displayed_pts/windowsize)):
                 
-                print("regraphing") 
-
                 #makes a cropped df of full data
                 interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
-
+                print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
 
 
             else:
