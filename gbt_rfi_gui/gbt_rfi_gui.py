@@ -28,6 +28,10 @@ from scipy.signal import find_peaks
 import plotly.graph_objects as go
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
 from PyQt5.QtWidgets import QDesktopWidget
+import plotly.graph_objs as go
+import plotly.io as pio
+
+
 
 # add .Ui file path here
 qtCreatorFile = os.path.dirname(__file__) + "/RFI_GUI.ui"
@@ -179,6 +183,89 @@ class Window(QMainWindow, Ui_MainWindow):
                 QtWidgets.QMessageBox.Ok,
             )
 
+
+
+
+
+
+    #Ideas
+    #Plot lowest resolution plot
+    #check for zoom 
+
+
+
+    def data_filter(self,order,data):
+
+
+        #Different levels of zoom
+        """
+        
+
+        plot every 10 points = 10%
+
+        100*length
+
+        #Order 1
+        
+        percentage plotting about 10% of the points
+
+        
+        #Order 0
+        
+        about 20 points per pixel
+
+        """
+        if order == 1:
+            intensity_threshold =  np.median(data['intensity_mean'])*10
+
+            low_res_data =  data.iloc[::int(len(data["intensity_mean"])*0.0005)] #1% of the baseline data
+
+            peaks, _ = find_peaks(data['intensity_mean'], height=intensity_threshold, distance=5)
+
+            peaks_data = data.iloc[peaks]
+
+            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
+
+
+        windowsize = windowsize = self.size().width()
+        total_points = len(data['intensity_mean'])
+
+        # lowest resolution data
+
+        if order == 0:
+
+
+            points_per_pxl = total_points/windowsize
+
+            #every what point to reach a point density of 15 per pixel
+            every_point = int(points_per_pxl/15)
+
+            #Specify an threshold of useful points 
+            intensity_threshold =  np.median(data['intensity_mean'])*100
+
+            
+            print("Threshold: " + str(intensity_threshold) + "Jy")
+
+            #creates the simplified dataset (This keeps the graph from losing the zero markers)
+            low_res_data =  data.iloc[::int(len(data["intensity_mean"])*0.001)] 
+            #print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
+            
+            peaks, _ = find_peaks(data['intensity_mean'], height=intensity_threshold, distance=every_point)
+
+            #takes out the peaks from the dataframe to be added later
+            peaks_data = data.iloc[peaks] 
+
+            #adds the high resolution peaks to the simplified dataset and sorts them
+            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
+
+
+        return filtered_data
+
+
+
+
+
+
     def make_plot(
         self, receivers, data, end_date, start_date, start_frequency, end_frequency, high_resolution
     ):
@@ -213,37 +300,20 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
         if high_resolution:
-            filtered_data = full_data
+            first_filtered_data = full_data
+
         else:
+            first_filtered_data = self.data_filter(0,full_data)
 
-            #Specify an threshold of useful points 
-            intensity_threshold =  np.median(full_data['intensity_mean'])*100
-
-            
-
-            print("Threshold: " + str(intensity_threshold) + "Jy")
-
-            #creates the simplified dataset (This keeps the graph from losing the zero markers)
-            low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.001)] 
-            #print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
+            second_filtered_data = self.data_filter(1,full_data)
 
 
-            #for the really big data sets, filter by peak distance
-            if(len(full_data["intensity_mean"]) > 400000):
-                print("advanced filtering")
-                peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold, distance=5)
-            else:
-                peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold)
 
-            #takes out the peaks from the dataframe to be added later
-            peaks_data = full_data.iloc[peaks] 
 
-            #adds the high resolution peaks to the simplified dataset and sorts them
-            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
 
         print("- Original # of points displayed: " + str(len(full_data["intensity_mean"])))
 
-        print(" - Filtered # displayed: " + str(len(filtered_data["intensity_mean"])))
+        print(" - Filtered # displayed: " + str(len(first_filtered_data["intensity_mean"])))
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
@@ -254,7 +324,7 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
 
-        plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
+        plt.fill_between(first_filtered_data["frequency"], first_filtered_data["intensity_mean"], color="black")
 
 
         # Create the annotations for RFI, only plot if user selects
@@ -308,8 +378,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
         plt.plot(
-            filtered_data["frequency"],
-            filtered_data["intensity_mean"],
+            first_filtered_data["frequency"],
+            first_filtered_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
@@ -338,9 +408,10 @@ class Window(QMainWindow, Ui_MainWindow):
             inten_max = event_ax.get_ylim()[1]
 
             #calculates the amount of displayed points on the screen
-            pts_per_freq = len(filtered_data["frequency"])/(end_frequency-start_frequency) 
-            pts_per_pixel = len(filtered_data["frequency"])/windowsize
+            pts_per_freq = len(first_filtered_data["frequency"])/(end_frequency-start_frequency) 
+            pts_per_pixel = len(first_filtered_data["frequency"])/windowsize
             displayed_pts = pts_per_freq*(freq_max-freq_min)
+
 
 
             #clears the plt to regraph
@@ -349,16 +420,26 @@ class Window(QMainWindow, Ui_MainWindow):
 
             #Is true if there isn't enough points for pixels on the screen
             if( 1.5 >= (displayed_pts/windowsize)):
-                
-                #makes a cropped df of full data
-                interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
-                print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
+
+                pts_per_freq = len(second_filtered_data["frequency"])/(end_frequency-start_frequency) 
+                pts_per_pixel = len(second_filtered_data["frequency"])/windowsize
+                displayed_pts = pts_per_freq*(freq_max-freq_min)
+
+                if( 1.5 >= (displayed_pts/windowsize)):
+                    #makes a cropped df of full data
+                    interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
+                    print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
+
+                #if its not too zoomed in then just plot the middle zoom
+                else:
+                    interval_data = second_filtered_data[(second_filtered_data['frequency'] >= freq_min) & (second_filtered_data['frequency'] <= freq_max)]
+                    print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
 
 
             else:
                 #pulls back the scipy filtered data
-                interval_data = filtered_data
-                plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
+                interval_data = first_filtered_data
+                plt.fill_between(first_filtered_data["frequency"], first_filtered_data["intensity_mean"], color="black")
 
 
             #replots
