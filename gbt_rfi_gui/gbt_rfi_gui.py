@@ -28,8 +28,6 @@ from scipy.signal import find_peaks
 import plotly.graph_objects as go
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
 from PyQt5.QtWidgets import QDesktopWidget
-import plotly.graph_objs as go
-import plotly.io as pio
 
 
 
@@ -184,85 +182,54 @@ class Window(QMainWindow, Ui_MainWindow):
             )
 
 
+    """
+    This function takes in the datasets and the number of desired points
+    Returns a dataset simplified to a ballpark estimate of the points requested depending on the graph features
+
+    """
+
+    def data_filter(self,points,data):
 
 
+        #Specifies a threshold of useful points 
+        intensity_threshold =  np.median(data['intensity_mean'])*10
+        print("Threshold: " + str(intensity_threshold) + "Jy")
 
-
-    #Ideas
-    #Plot lowest resolution plot
-    #check for zoom 
-
-
-
-    def data_filter(self,order,data):
-
-
-        #Different levels of zoom
-        """
-        
-
-        plot every 10 points = 10%
-
-        100*length
-
-        #Order 1
-        
-        percentage plotting about 10% of the points
-
-        
-        #Order 0
-        
-        about 20 points per pixel
 
         """
-        if order == 1:
-            intensity_threshold =  np.median(data['intensity_mean'])*10
-
-            low_res_data =  data.iloc[::int(len(data["intensity_mean"])*0.0005)] #1% of the baseline data
-
-            peaks, _ = find_peaks(data['intensity_mean'], height=intensity_threshold, distance=5)
-
-            peaks_data = data.iloc[peaks]
-
-            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
-
-
+        conversions needed for the plot every other point commands below
+        """
         windowsize = windowsize = self.size().width()
         total_points = len(data['intensity_mean'])
 
-        # lowest resolution data
+        points_per_pxl = total_points / windowsize
 
-        if order == 0:
+        asigned_pt_per_pxl = points / windowsize
 
 
-            points_per_pxl = total_points/windowsize
+        #every what point to reach a point density asigned
+        every_point = int(points_per_pxl / asigned_pt_per_pxl)
 
-            #every what point to reach a point density of 15 per pixel
-            every_point = int(points_per_pxl/15)
 
-            #Specify an threshold of useful points 
-            intensity_threshold =  np.median(data['intensity_mean'])*100
 
-            
-            print("Threshold: " + str(intensity_threshold) + "Jy")
+        #selects the points with the highest intensity within a specified range and intensity        
+        peaks, _ = find_peaks(
+            data['intensity_mean'], 
+            height=intensity_threshold, 
+            distance=every_point)
 
-            #creates the simplified dataset (This keeps the graph from losing the zero markers)
-            low_res_data =  data.iloc[::int(len(data["intensity_mean"])*0.001)] 
-            #print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
-            
-            peaks, _ = find_peaks(data['intensity_mean'], height=intensity_threshold, distance=every_point)
+        peaks_data = data.iloc[peaks] 
 
-            #takes out the peaks from the dataframe to be added later
-            peaks_data = data.iloc[peaks] 
-
-            #adds the high resolution peaks to the simplified dataset and sorts them
-            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
-
+        #creates the simplified dataset (This keeps the graph from losing the zero markers)
+        low_res_data =  data.iloc[::every_point]
+    
+        #adds the high resolution peaks to the simplified dataset and sorts them
+        filtered_data = pd.concat(
+            [peaks_data,
+            low_res_data]
+            ).sort_values(by='frequency')
 
         return filtered_data
-
-
-
 
 
 
@@ -299,16 +266,26 @@ class Window(QMainWindow, Ui_MainWindow):
             print(f"", proj_date[0], "\t\t", str(i))
 
 
-        if high_resolution:
+        #if the resolution was selected or if the data isn't big enough
+        if (high_resolution or 
+            len(full_data["intensity_mean"]) < 15000):
+            
+            dynamic = False
+
             first_filtered_data = full_data
 
+
         else:
-            first_filtered_data = self.data_filter(0,full_data)
+            dynamic= True
 
-            second_filtered_data = self.data_filter(1,full_data)
+            """
+            The two resolutions for the dynamic plotting are created here
+            """
+            #caps the data to roughly the average monitor size
+            first_filtered_data = self.data_filter(2000,full_data)
 
-
-
+            #5% of the original data
+            second_filtered_data = self.data_filter((len(full_data["intensity_mean"]))*0.05,full_data)
 
 
         print("- Original # of points displayed: " + str(len(full_data["intensity_mean"])))
@@ -376,7 +353,6 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 
-
         plt.plot(
             first_filtered_data["frequency"],
             first_filtered_data["intensity_mean"],
@@ -393,10 +369,12 @@ class Window(QMainWindow, Ui_MainWindow):
         mngr.window.setGeometry(459, 0, dx, dy)
 
 
+        """
+        Dynamic plotting command, activated by matplot axis changing
+        """
         def on_lims_change(event_ax):
 
 
-            #window width
             windowsize = self.size().width()
 
 
@@ -408,9 +386,11 @@ class Window(QMainWindow, Ui_MainWindow):
             inten_max = event_ax.get_ylim()[1]
 
             #calculates the amount of displayed points on the screen
-            pts_per_freq = len(first_filtered_data["frequency"])/(end_frequency-start_frequency) 
+            pts_per_freq = len(first_filtered_data["frequency"]) /(end_frequency - start_frequency) 
+
             pts_per_pixel = len(first_filtered_data["frequency"])/windowsize
-            displayed_pts = pts_per_freq*(freq_max-freq_min)
+            
+            displayed_pts = pts_per_freq*(freq_max - freq_min)
 
 
 
@@ -419,21 +399,23 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
             #Is true if there isn't enough points for pixels on the screen
-            if( 1.5 >= (displayed_pts/windowsize)):
+            if( 1.2 >= (displayed_pts/windowsize)):
 
                 pts_per_freq = len(second_filtered_data["frequency"])/(end_frequency-start_frequency) 
                 pts_per_pixel = len(second_filtered_data["frequency"])/windowsize
                 displayed_pts = pts_per_freq*(freq_max-freq_min)
 
-                if( 1.5 >= (displayed_pts/windowsize)):
+                if( 1.2 >= (displayed_pts/windowsize)):
                     #makes a cropped df of full data
                     interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
-                    print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
+                    print("full regraphed points # : " + str(len(interval_data["intensity_mean"])))
 
-                #if its not too zoomed in then just plot the middle zoom
+                #if its not too zoomed in then just plot the middle resolution
                 else:
                     interval_data = second_filtered_data[(second_filtered_data['frequency'] >= freq_min) & (second_filtered_data['frequency'] <= freq_max)]
-                    print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
+                    print("midrez regraphed points # : " + str(len(interval_data["intensity_mean"])))
+                    #plt.fill_between(second_filtered_data["frequency"], second_filtered_data["intensity_mean"], color="black")
+
 
 
             else:
@@ -458,10 +440,13 @@ class Window(QMainWindow, Ui_MainWindow):
             ax.callbacks.connect('xlim_changed', on_lims_change)
             ax.callbacks.connect('ylim_changed', on_lims_change)
 
-                
-        #checks if the axis change
-        ax.callbacks.connect('xlim_changed', on_lims_change)
-        ax.callbacks.connect('ylim_changed', on_lims_change)
+        
+
+        #no dynamic updating unless checked
+        if dynamic:
+            ax.callbacks.connect('xlim_changed', on_lims_change)
+            ax.callbacks.connect('ylim_changed', on_lims_change)
+            print("active")
 
         # Plot one or both the line plot and the annotations
         
