@@ -29,6 +29,8 @@ import plotly.graph_objects as go
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
 from PyQt5.QtWidgets import QDesktopWidget
 
+
+
 # add .Ui file path here
 qtCreatorFile = os.path.dirname(__file__) + "/RFI_GUI.ui"
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
@@ -179,6 +181,58 @@ class Window(QMainWindow, Ui_MainWindow):
                 QtWidgets.QMessageBox.Ok,
             )
 
+
+    """
+    This function takes in the datasets and the number of desired points
+    Returns a dataset simplified to a ballpark estimate of the points requested depending on the graph features
+
+    """
+
+    def data_filter(self,points,data):
+
+
+        #Specifies a threshold of useful points 
+        intensity_threshold =  np.median(data['intensity_mean'])*10
+        print("Threshold: " + str(intensity_threshold) + "Jy")
+
+
+        """
+        conversions needed for the plot every other point commands below
+        """
+        windowsize = windowsize = self.size().width()
+        total_points = len(data['intensity_mean'])
+
+        points_per_pxl = total_points / windowsize
+
+        asigned_pt_per_pxl = points / windowsize
+
+
+        #every what point to reach a point density asigned
+        every_point = int(points_per_pxl / asigned_pt_per_pxl)
+
+
+
+        #selects the points with the highest intensity within a specified range and intensity        
+        peaks, _ = find_peaks(
+            data['intensity_mean'], 
+            height=intensity_threshold, 
+            distance=every_point)
+
+        peaks_data = data.iloc[peaks] 
+
+        #creates the simplified dataset (This keeps the graph from losing the zero markers)
+        low_res_data =  data.iloc[::every_point]
+    
+        #adds the high resolution peaks to the simplified dataset and sorts them
+        filtered_data = pd.concat(
+            [peaks_data,
+            low_res_data]
+            ).sort_values(by='frequency')
+
+        return filtered_data
+
+
+
     def make_plot(
         self, receivers, data, end_date, start_date, start_frequency, end_frequency, high_resolution
     ):
@@ -212,38 +266,31 @@ class Window(QMainWindow, Ui_MainWindow):
             print(f"", proj_date[0], "\t\t", str(i))
 
 
-        if high_resolution:
-            filtered_data = full_data
-        else:
-
-            #Specify an threshold of useful points 
-            intensity_threshold =  np.median(full_data['intensity_mean'])*100
-
+        #if the resolution was selected or if the data isn't big enough
+        if (high_resolution or 
+            len(full_data["intensity_mean"]) < 15000):
             
+            dynamic = False
 
-            print("Threshold: " + str(intensity_threshold) + "Jy")
-
-            #creates the simplified dataset (This keeps the graph from losing the zero markers)
-            low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.001)] 
-            #print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
+            first_filtered_data = full_data
 
 
-            #for the really big data sets, filter by peak distance
-            if(len(full_data["intensity_mean"]) > 400000):
-                print("advanced filtering")
-                peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold, distance=5)
-            else:
-                peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold)
+        else:
+            dynamic= True
 
-            #takes out the peaks from the dataframe to be added later
-            peaks_data = full_data.iloc[peaks] 
+            """
+            The two resolutions for the dynamic plotting are created here
+            """
+            #caps the data to roughly the average monitor size
+            first_filtered_data = self.data_filter(2000,full_data)
 
-            #adds the high resolution peaks to the simplified dataset and sorts them
-            filtered_data = pd.concat([peaks_data,low_res_data]).sort_values(by='frequency')
+            #5% of the original data
+            second_filtered_data = self.data_filter((len(full_data["intensity_mean"]))*0.05,full_data)
+
 
         print("- Original # of points displayed: " + str(len(full_data["intensity_mean"])))
 
-        print(" - Filtered # displayed: " + str(len(filtered_data["intensity_mean"])))
+        print(" - Filtered # displayed: " + str(len(first_filtered_data["intensity_mean"])))
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
@@ -254,7 +301,7 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
 
-        plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
+        plt.fill_between(first_filtered_data["frequency"], first_filtered_data["intensity_mean"], color="black")
 
 
         # Create the annotations for RFI, only plot if user selects
@@ -306,10 +353,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 
-
         plt.plot(
-            filtered_data["frequency"],
-            filtered_data["intensity_mean"],
+            first_filtered_data["frequency"],
+            first_filtered_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
@@ -323,10 +369,12 @@ class Window(QMainWindow, Ui_MainWindow):
         mngr.window.setGeometry(459, 0, dx, dy)
 
 
+        """
+        Dynamic plotting command, activated by matplot axis changing
+        """
         def on_lims_change(event_ax):
 
 
-            #window width
             windowsize = self.size().width()
 
 
@@ -338,9 +386,12 @@ class Window(QMainWindow, Ui_MainWindow):
             inten_max = event_ax.get_ylim()[1]
 
             #calculates the amount of displayed points on the screen
-            pts_per_freq = len(filtered_data["frequency"])/(end_frequency-start_frequency) 
-            pts_per_pixel = len(filtered_data["frequency"])/windowsize
-            displayed_pts = pts_per_freq*(freq_max-freq_min)
+            pts_per_freq = len(first_filtered_data["frequency"]) /(end_frequency - start_frequency) 
+
+            pts_per_pixel = len(first_filtered_data["frequency"])/windowsize
+            
+            displayed_pts = pts_per_freq*(freq_max - freq_min)
+
 
 
             #clears the plt to regraph
@@ -348,17 +399,29 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
             #Is true if there isn't enough points for pixels on the screen
-            if( 1.5 >= (displayed_pts/windowsize)):
-                
-                #makes a cropped df of full data
-                interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
-                print("regraphed points # : " + str(len(interval_data["intensity_mean"])))
+            if( 1.2 >= (displayed_pts/windowsize)):
+
+                pts_per_freq = len(second_filtered_data["frequency"])/(end_frequency-start_frequency) 
+                pts_per_pixel = len(second_filtered_data["frequency"])/windowsize
+                displayed_pts = pts_per_freq*(freq_max-freq_min)
+
+                if( 1.2 >= (displayed_pts/windowsize)):
+                    #makes a cropped df of full data
+                    interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
+                    print("full regraphed points # : " + str(len(interval_data["intensity_mean"])))
+
+                #if its not too zoomed in then just plot the middle resolution
+                else:
+                    interval_data = second_filtered_data[(second_filtered_data['frequency'] >= freq_min) & (second_filtered_data['frequency'] <= freq_max)]
+                    print("midrez regraphed points # : " + str(len(interval_data["intensity_mean"])))
+                    #plt.fill_between(second_filtered_data["frequency"], second_filtered_data["intensity_mean"], color="black")
+
 
 
             else:
                 #pulls back the scipy filtered data
-                interval_data = filtered_data
-                plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
+                interval_data = first_filtered_data
+                plt.fill_between(first_filtered_data["frequency"], first_filtered_data["intensity_mean"], color="black")
 
 
             #replots
@@ -377,10 +440,13 @@ class Window(QMainWindow, Ui_MainWindow):
             ax.callbacks.connect('xlim_changed', on_lims_change)
             ax.callbacks.connect('ylim_changed', on_lims_change)
 
-                
-        #checks if the axis change
-        ax.callbacks.connect('xlim_changed', on_lims_change)
-        ax.callbacks.connect('ylim_changed', on_lims_change)
+        
+
+        #no dynamic updating unless checked
+        if dynamic:
+            ax.callbacks.connect('xlim_changed', on_lims_change)
+            ax.callbacks.connect('ylim_changed', on_lims_change)
+            print("active")
 
         # Plot one or both the line plot and the annotations
         
