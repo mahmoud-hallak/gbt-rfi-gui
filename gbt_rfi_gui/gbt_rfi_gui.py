@@ -26,7 +26,7 @@ from rfi.models import Frequency, Scan
 
 from scipy.signal import find_peaks
 import plotly.graph_objects as go
-from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication, QCheckBox
 from PyQt5.QtWidgets import QDesktopWidget
 
 
@@ -77,6 +77,15 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionQuit.triggered.connect(self.menuQuit)
         self.actionAbout.triggered.connect(self.menuAbout)
 
+
+
+        self.toggle_resolution = QCheckBox("Toggle High Resolution (not usually needed)", self)
+
+        self.setMenuWidget(self.toggle_resolution)
+
+
+
+
     def get_scans(self, receivers, target_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
@@ -114,7 +123,6 @@ class Window(QMainWindow, Ui_MainWindow):
         end_date,
         start_frequency,
         end_frequency,
-        high_resolution,
     ):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
@@ -168,7 +176,6 @@ class Window(QMainWindow, Ui_MainWindow):
                 start_date,
                 start_frequency,
                 end_frequency,
-                high_resolution,
             )
             # color map graph, but only if there is more than one day with data
             unique_days = data.scan__datetime.unique()
@@ -230,6 +237,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         return filtered_data
 
+
     def make_plot(
         self,
         receivers,
@@ -238,8 +246,12 @@ class Window(QMainWindow, Ui_MainWindow):
         start_date,
         start_frequency,
         end_frequency,
-        high_resolution,
     ):
+
+        high_resolution = self.toggle_resolution.isChecked()
+
+        print(high_resolution)
+
         # make a new object with the average intensity for the 2D plot
         mean_data_intens = data.groupby(
             ["scan__datetime", "frequency", "scan__session__name"]
@@ -657,7 +669,6 @@ class Window(QMainWindow, Ui_MainWindow):
             start_date=start_date,
             start_frequency=start_frequency,
             end_frequency=end_frequency,
-            high_resolution=False,
         )
 
         # change the color so the user knows that it is done plotting
