@@ -29,7 +29,10 @@ from rfi.models import Frequency, Scan
 from scipy.signal import find_peaks
 import plotly.graph_objects as go
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
-from PyQt5.QtWidgets import QDesktopWidget
+import plotly.graph_objs as go
+import plotly.io as pio
+from plotly.subplots import make_subplots
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 
 
@@ -56,6 +59,7 @@ class Window(QMainWindow, Ui_MainWindow):
         QtWidgets.QWidget.__init__(self)
 
 
+
         # Set up the UI file
     """
         self.setupUi(self)
@@ -79,6 +83,22 @@ class Window(QMainWindow, Ui_MainWindow):
             self.button.setEnabled()
 
     """
+
+
+    def plotly(self,plot_html):
+
+        self.setWindowTitle("graph")
+
+        self.plot_widget = QWebEngineView()
+
+        self.plot_widget.setHtml(plot_html)
+
+        self.setCentralWidget(self.plot_widget)
+
+        self.show()
+
+
+
 
     def do_plot(self, session, high_resolution, receivers, start_date, end_date):
             # don't want to look at dates with no data, find the most recent session date
@@ -116,6 +136,7 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(scan__datetime__gte=start_date)
 
 
+            qs = qs.filter(is_peak=True)
 
             #if you have an exact session inmind
             #qs = Frequency.objects.filter(scan__session__name=session)
@@ -182,8 +203,6 @@ class Window(QMainWindow, Ui_MainWindow):
 
         #Mahmoud Edits
 
-        start_time = time.time()
-
 
         if high_resolution == "orig":
             filtered_data = full_data
@@ -228,104 +247,53 @@ class Window(QMainWindow, Ui_MainWindow):
         start_time = time.time()
 
 
+        frequency = filtered_data["frequency"]
+        intensity_mean = filtered_data["intensity_mean"]
+
+
         # Create the 2D line plot
-        fig, ax = plt.subplots(1, figsize=(9, 4))
-        plt.suptitle( high_resolution + ": Averaged RFI Environment at Green Bank Observatory" + "\n" + "# points: " + str(len(filtered_data["intensity_mean"])))
-        plt.xlabel("Frequeny (MHz)")
-        plt.ylabel("Average Intensity (Jy)")
-        plt.ylim(-10, 500)
-        plt.xlim(start_frequency, end_frequency)
+        fig = make_subplots(rows=1, cols=1)
 
-        plt.plot(
-            filtered_data["frequency"],
-            filtered_data["intensity_mean"],
-            color="black",
-            linewidth=0.5,
-        )
-        # make sure the titles align correctly
-        plt.tight_layout()
-        # setting the location of the window
-        mngr = plt.get_current_fig_manager()
-        geom = mngr.window.geometry()
-        x, y, dx, dy = geom.getRect()
-        # display the plot to the right of the ui
-        mngr.window.setGeometry(459, 0, dx, dy)
-        
-
-        #Fills in the gaps and better highlight the peak groupings without the zigzag
-        plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
-
-
-
-
-        #Dynamic plot
-
-        def on_lims_change(event_ax):
-
-
-            #window width
-            windowsize = self.size().width()
-
-
-            #Finds the x and y limits of this new interval
-            freq_min = event_ax.get_xlim()[0]
-            freq_max = event_ax.get_xlim()[1]
-
-            inten_min = event_ax.get_ylim()[0]
-            inten_max = event_ax.get_ylim()[1]
-
-            #calculates the amount of displayed points on the screen
-            pts_per_freq = len(filtered_data["frequency"])/(end_frequency-start_frequency) 
-            pts_per_pixel = len(filtered_data["frequency"])/windowsize
-            displayed_pts = pts_per_freq*(freq_max-freq_min)
-
-
-            #clears the plt to regraph
-            plt.cla()
-
-
-            #Is true if there isn't enough points for pixels on the screen
-            if( 1.5 >= (displayed_pts/windowsize)):
-                
-                print("regraphing") 
-
-                #makes a cropped df of full data
-                interval_data = full_data[(full_data['frequency'] >= freq_min) & (full_data['frequency'] <= freq_max)]
-
-
-
-            else:
-                #pulls back the scipy filtered data
-                interval_data = filtered_data
-                plt.fill_between(filtered_data["frequency"], filtered_data["intensity_mean"], color="black")
-
-
-            #replots
-            plt.plot(
-                interval_data["frequency"],
-                interval_data["intensity_mean"],
-                color="black",
-                linewidth=0.5,
+        # Initial plot
+        fig.add_trace(
+            go.Scatter(
+                x=frequency,
+                y=intensity_mean,
+                mode='lines',
+                line=dict(color='black', width=0.5),
+                fill='tozeroy',  # Fills area below the line to zero y
             )
-            plt.xlim(freq_min,freq_max)  # Set xlim explicitly
-            plt.ylim(inten_min, inten_max)
-            ax.figure.canvas.draw_idle()
+        )
 
+        # Layout settings
+        fig.update_layout(
+            title=high_resolution + ": Averaged RFI Environment at Green Bank Observatory",
+            xaxis_title="Frequency (MHz)",
+            yaxis_title="Average Intensity (Jy)",
+            yaxis=dict(range=[-10, 500]),  # Set y-axis range
+            xaxis=dict(range=[start_frequency, end_frequency]),  # Set x-axis range
+            showlegend=False,  # No legend for this plot
+        )
 
-            # The only way to get it to update again was putting those commands in this def
-            ax.callbacks.connect('xlim_changed', on_lims_change)
-            ax.callbacks.connect('ylim_changed', on_lims_change)
+        # Update figure size
+        fig.update_layout(width=900, height=400)
+
+        # Dynamic plot function (using callbacks in Plotly)
+        
 
         
-        #checks if the axis change
-        ax.callbacks.connect('xlim_changed', on_lims_change)
-        ax.callbacks.connect('ylim_changed', on_lims_change)
+        # Connect callback to relayout events
+        
 
-        #so it doesn't get stuck, we don't show the plot instead exit right away
-        plt.show()
-        plt.pause(0.0001)
-        plt.close()
-        print("--- %s plotting time: seconds ---" % (time.time() - start_time))
+        plot_html = pio.to_html(fig, full_html=False)
+
+        self.plotly(plot_html)
+
+        #fig.show()
+
+
+        # Display the interactive plot
+
 
 
 def main():
@@ -349,14 +317,13 @@ def main():
     user_input = str(input("Type of analysis ('orig, scipy, mean'): "))
 
     app = QtWidgets.QApplication(sys.argv)
-    screen = Window()
 
-    #screen.show()  for the widgets
+    screen = Window()
 
     #string_array = ["TRFI_020423_S1","TRFI_020623_S1","TRFI_020623_S2","TRFI_020723_S1","TRFI_020823_S1"]
 
 
-    Window.do_plot(Window(),
+    Window.do_plot(screen,
             session = "TRFI_110823_S1",
             high_resolution = user_input,
             receivers = receivers,
@@ -365,9 +332,7 @@ def main():
         )
 
 
-    
-
-    #sys.exit(app.exec_())
+    sys.exit(app.exec_())
     
 
 if __name__ == "__main__":

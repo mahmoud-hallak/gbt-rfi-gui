@@ -64,7 +64,7 @@ class QueryForm(forms.Form):
     receivers = forms.MultipleChoiceField(
         choices= friendly_names, label="Receivers", required=True
     )
-    receivers.widget.attrs.update(size=len(Frontend.objects.all())-2)
+    #receivers.widget.attrs.update(size=len(Frontend.objects.all())-2)
     freq_high = forms.FloatField(label="High Frequency", required=False,
       error_messages={'freq_low':"Freq_high is lower than freq_low"}, widget=forms.TextInput())
     freq_low = forms.FloatField(label="<hr> Low Frequency", required=False, error_messages={"too_low":"Your high is too low"}, widget=forms.TextInput())

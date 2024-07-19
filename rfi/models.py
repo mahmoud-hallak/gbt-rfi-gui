@@ -99,8 +99,13 @@ class Frequency(models.Model):
     scan = models.ForeignKey("Scan", on_delete=models.CASCADE)
     window = models.PositiveIntegerField()
     channel = models.PositiveIntegerField()
-    frequency = models.FloatField()
+    frequency = models.FloatField(db_index=True)
     intensity = models.FloatField(help_text="Intensity in Jy")
+    #is_peak = models.BooleanField(db_index=True, default=False)
+    view_level_0 = models.BooleanField(db_index=True, default=False)
+    view_level_1 = models.BooleanField(db_index=True, default=False)
+    view_level_2 = models.BooleanField(db_index=True, default=False)
+    view_level_3 = models.BooleanField(db_index=True, default=False)
 
     class Meta:
         unique_together = ("scan", "channel", "frequency")

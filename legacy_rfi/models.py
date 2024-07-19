@@ -48,6 +48,7 @@ class MasterRfiCatalog(models.Model):
     elevation_deg = models.DecimalField(
         db_column="elevation_deg", max_digits=8, decimal_places=6, blank=True, null=True
     )  # Field renamed to remove unsuitable characters. Field renamed because it ended with '_'.
+    is_peak = models.BooleanField(db_index=True, default=False)
 
     def __str__(self):
         return self.filename
