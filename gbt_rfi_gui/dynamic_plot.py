@@ -154,7 +154,7 @@ class Window(QMainWindow, Ui_MainWindow):
                 )
                 # color map graph, but only if there is more than one day with data
                 unique_days = data.scan__datetime.unique()
-                #self.make_color_plot(data, unique_days, receivers, end_date, start_date)
+                self.make_color_plot(data, unique_days, receivers, end_date, start_date)
 
                 # option to save the data from the plot
                 #if self.saveData.isChecked():
@@ -221,7 +221,7 @@ class Window(QMainWindow, Ui_MainWindow):
         print("--- %s filter time: seconds ---" % (time.time() - start_time))
 
         
-        print("Total # of points displayed: " + str(len(sorted_data["intensity_mean"])))
+        #print("Total # of points displayed: " + str(len(sorted_data["intensity_mean"])))
         
 
         start_time = time.time()

@@ -32,7 +32,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication
 import plotly.graph_objs as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+#from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 
 
@@ -84,19 +84,19 @@ class Window(QMainWindow, Ui_MainWindow):
 
     """
 
-
+    """
     def plotly(self,plot_html):
 
         self.setWindowTitle("graph")
 
-        self.plot_widget = QWebEngineView()
+        #self.plot_widget = QWebEngineView()
 
-        self.plot_widget.setHtml(plot_html)
+        #self.plot_widget.setHtml(plot_html)
 
         self.setCentralWidget(self.plot_widget)
 
         self.show()
-
+    """
 
 
 
@@ -136,7 +136,7 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(scan__datetime__gte=start_date)
 
 
-            qs = qs.filter(is_peak=True)
+            #qs = qs.filter(is_peak=True)
 
             #if you have an exact session inmind
             #qs = Frequency.objects.filter(scan__session__name=session)
@@ -209,15 +209,15 @@ class Window(QMainWindow, Ui_MainWindow):
         elif high_resolution == "scipy":
 
             #Specify an threshold of useful points 
-            intensity_threshold =  np.median(full_data['intensity_mean'])*100
+            intensity_threshold =  np.median(full_data['intensity_mean'])*1000000
             print("Threshold: " + str(intensity_threshold) + "Jy")
 
             #creates the simplified dataset (This keeps the graph from losing the zero markers)
-            low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.005)] 
+            low_res_data =  full_data.iloc[::int(len(full_data["intensity_mean"])*0.0005)] 
             print("lowres points displayed: " + str(len(low_res_data["intensity_mean"])))
 
             #Finds the points above the specified threshold, 
-            peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold)
+            peaks, _ = find_peaks(full_data['intensity_mean'], intensity_threshold, distance = 1000)
 
             #takes out the peaks from the dataframe to be added later
             peaks_data = full_data.iloc[peaks] 
@@ -285,11 +285,7 @@ class Window(QMainWindow, Ui_MainWindow):
         # Connect callback to relayout events
         
 
-        plot_html = pio.to_html(fig, full_html=False)
-
-        self.plotly(plot_html)
-
-        #fig.show()
+        fig.show()
 
 
         # Display the interactive plot

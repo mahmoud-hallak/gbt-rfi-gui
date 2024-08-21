@@ -3,6 +3,7 @@ import os
 import signal
 import sys
 
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rfi_query.settings")
 
 import django
@@ -25,12 +26,12 @@ from rfi.models import Frequency, Scan
 
 
 from scipy.signal import find_peaks
-import plotly.graph_objects as go
+#import plotly.graph_objects as go
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication, QCheckBox
-from PyQt5.QtWidgets import QDesktopWidget
+#from PyQt5.QtWidgets import QDesktopWidget
 
-
-from django.db.models import Q
+import time
+#from django.db.models import Q
 
 
 # add .Ui file path here
@@ -82,7 +83,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 
-        self.toggle_resolution = QCheckBox("Toggle High Resolution (not usually needed)", self)
+        self.toggle_resolution = QCheckBox("Toggle High Resolution to save the full data", self)
 
         self.setMenuWidget(self.toggle_resolution)
 
@@ -163,24 +164,15 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
 
+        #if the high resolution button is not checked
+        if not self.toggle_resolution.isChecked():
+            qs = qs.filter(view_level_0=True)
 
-        #Mahmoud Addition query
-
-        stuff= Frequency()._meta
-
-        fields = stuff.get_fields()
-
-        # Extract and print the names of the fields
-        field_names = [field.name for field in fields]
-        #print(field_names)
-
-        qs = qs.filter(view_level_0=True)
 
         # make a 4 column dataFrame for the data needed to plot
         data = pd.DataFrame(
             qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
         )
-
 
 
         if not start_frequency:
@@ -218,7 +210,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
     
-    def dynamic_query(self, freq_min, freq_max, sessions,zoom):
+    def dynamic_query(self, freq_min, freq_max, sessions, zoom):
 
         qs = Frequency.objects.all()
 
@@ -227,8 +219,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         #filter data by the zoom and freq_min and freq_max
         qs = qs.filter(frequency__gte=freq_min, frequency__lte=freq_max)
-
-        print(zoom)
+        
         if(zoom == 0):
             qs = qs.filter(view_level_0=True)
         elif (zoom == 1):
@@ -254,10 +245,7 @@ class Window(QMainWindow, Ui_MainWindow):
         # sort values so the plot looks better, this has nothing to do with the actual data
         df = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
-        print("Array length bef: " + str(len(df["frequency"])))
-
         return df
-
 
 
 
@@ -280,7 +268,7 @@ class Window(QMainWindow, Ui_MainWindow):
         mean_data_intens.columns = ["intensity_mean"]
         mean_data = mean_data_intens.reset_index()
         # sort values so the plot looks better, this has nothing to do with the actual data
-        full_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
+        mean_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
         # generate the description fro the plot
         txt = f" \
@@ -293,7 +281,7 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Your requested projects are below:")
         print("Session Date \t\t Project_ID")
         print("-------------------------------------")
-        sort_by_date = full_data.sort_values(by=["scan__session__name"])
+        sort_by_date = mean_data.sort_values(by=["scan__session__name"])
         project_ids = sort_by_date["scan__session__name"].unique()
         for i in project_ids:
             proj_date = sort_by_date[
@@ -303,26 +291,14 @@ class Window(QMainWindow, Ui_MainWindow):
             print(f"", proj_date[0], "\t\t", str(i))
 
         # if the resolution was selected or if the data isn't big enough
-        if high_resolution or len(full_data["intensity_mean"]) < 15000:
+        if high_resolution:
 
-            dynamic = True
-
-            first_filtered_data = full_data
+            dynamic = False
 
         else:
             dynamic = True
 
-            """
-            The two resolutions for the dynamic plotting are created here
-            """
-            # caps the data to roughly the average monitor size
-            first_filtered_data = self.data_filter(2000, full_data)
-
-            """ 5% of the original data
-            second_filtered_data = self.data_filter(
-                (len(full_data["intensity_mean"])) * 0.05, full_data
-            )
-            """
+        print("data points: " + str(len(mean_data["frequency"])))
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
@@ -332,12 +308,6 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
-
-        plt.fill_between(
-            first_filtered_data["frequency"],
-            first_filtered_data["intensity_mean"],
-            color="black",
-        )
 
         # Create the annotations for RFI, only plot if user selects
         if self.yes_annotate.isChecked():
@@ -387,8 +357,8 @@ class Window(QMainWindow, Ui_MainWindow):
                 fig.canvas.mpl_connect("button_press_event", onclick)
 
         plt.plot(
-            first_filtered_data["frequency"],
-            first_filtered_data["intensity_mean"],
+            mean_data["frequency"],
+            mean_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
@@ -405,10 +375,17 @@ class Window(QMainWindow, Ui_MainWindow):
         Dynamic plotting command, activated by matplot axis changing
         """
 
-
-        sessions = full_data['scan__session__name'].sort_values().unique()
+        #sets the variables needed for the dynamic 
+        sessions = mean_data['scan__session__name'].sort_values().unique()
         self.zoom = 0
-        self.interval_data = first_filtered_data
+        self.interval_data = mean_data
+
+        large_sessions = np.array(["Prime Focus 1", "Rcvr1_2", "Rcvr4_6", "RcvrArray18_26", "Rcvr26_40", "Rcvr40_52"])
+
+        is_large_session = receivers in large_sessions 
+
+        more_than_10 = len(sessions) > 10
+
 
         def on_lims_change(event_ax):
 
@@ -418,11 +395,11 @@ class Window(QMainWindow, Ui_MainWindow):
             freq_min, freq_max = event_ax.get_xlim()
             inten_min, inten_max = event_ax.get_ylim()
 
-            df_freq_max = first_filtered_data["frequency"].max()
+            #Finds the max/min frequency of the interval
+            df_freq_max = mean_data["frequency"].max()
+            df_freq_min = mean_data["frequency"].min()
 
-            df_freq_min = first_filtered_data["frequency"].min()
-
-            pts_per_freq = len(first_filtered_data["frequency"]) / (
+            pts_per_freq = len(mean_data["frequency"]) / (
                 df_freq_max - df_freq_min
             )
 
@@ -430,50 +407,48 @@ class Window(QMainWindow, Ui_MainWindow):
 
             displayed_pts = pts_per_freq * (freq_max - freq_min)
 
+            #start by not replotting, and change if needed
             replot = False
 
-            #print("Ratio of displayed: " + str(1.2 >= (displayed_pts / windowsize)))
 
-            #checks if its panning motion or zooming
-            if (round(freq_diff*2,1) != 
-                round((self.interval_data["frequency"].max() - self.interval_data["frequency"].min()),1)):
+            #checks if its panning motion or zooming (rounds to whole number)
+            if (round(freq_diff*2,0) != 
+                round((self.interval_data["frequency"].max() - self.interval_data["frequency"].min()),0)):
 
                 replot = True
 
-                print("inside the")
-                if 1 >= (displayed_pts / windowsize):
+                if 1 > (displayed_pts / windowsize):
                     self.zoom =  1
 
-                if 0.4 >= (displayed_pts / windowsize):
+                if 0.4 > (displayed_pts / windowsize):
                     self.zoom = 2
 
-                if 0.07 >= (displayed_pts / windowsize):
+                if 0.07 > (displayed_pts / windowsize):
                     self.zoom = 3
 
-                if 0.02 >= (displayed_pts / windowsize):
+                if not (is_large_session or more_than_10):
                     self.zoom = 4
 
-                if 2<= (displayed_pts / windowsize):
+                if 0.02 > (displayed_pts / windowsize):
+                    self.zoom = 4
+
+                if 2 < (displayed_pts / windowsize):
                     # pulls back the scipy filtered data
-                    self.interval_data = first_filtered_data
-                    print("Zoom 0")
+                    self.interval_data = mean_data
                     self.zoom =  0
-                    plt.fill_between(
-                        first_filtered_data["frequency"],
-                        first_filtered_data["intensity_mean"],
-                        color="black",
-                    )
+
+                # incase the user zooms back out, it will assign the already pulled data instead of querying (Faster)
+                if(self.zoom == 0):
+                    self.interval_data = mean_data
+                else:
+                    self.interval_data = self.dynamic_query(freq_min-freq_diff*0.5, freq_max+freq_diff*0.5, sessions, self.zoom)
+
+            #this checks if we go out of bounds, and calls to replot more points (Causes a minor graph lag when paning)
+            elif(self.zoom and (self.interval_data["frequency"].max() < freq_max or self.interval_data["frequency"].min() > freq_min)):
                 self.interval_data = self.dynamic_query(freq_min-freq_diff*0.5, freq_max+freq_diff*0.5, sessions, self.zoom)
-                #self.interval_data = self.dynamic_query(freq_min, freq_max, sessions, self.zoom)
-            #elif(pan detected)
-
+                replot = True
             
-
-            #print("Array length bef: " + str(len(self.interval_data["frequency"])))
-
             # replots
-
-            # The only way to get it to update again was putting those commands in this def
             if(replot):
                 print("replotting")
                 plt.cla()
@@ -491,9 +466,6 @@ class Window(QMainWindow, Ui_MainWindow):
         # no dynamic updating unless checked
         if dynamic:
             ax.callbacks.connect("xlim_changed", on_lims_change)
-            #ax.callbacks.connect("ylim_changed", on_lims_change)
-
-        # Plot one or both the line plot and the annotations
 
         plt.show()
 
@@ -599,6 +571,7 @@ class Window(QMainWindow, Ui_MainWindow):
         mngr.window.setGeometry(0, 456, dx, dy)
 
         plt.show()
+
 
     def save_file(self, data):
         name, filetype = QFileDialog.getSaveFileName(
