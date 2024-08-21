@@ -23,6 +23,16 @@ from PyQt5.uic import loadUiType
 
 from rfi.models import Frequency, Scan
 
+
+from scipy.signal import find_peaks
+import plotly.graph_objects as go
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QApplication, QCheckBox
+from PyQt5.QtWidgets import QDesktopWidget
+
+
+from django.db.models import Q
+
+
 # add .Ui file path here
 qtCreatorFile = os.path.dirname(__file__) + "/RFI_GUI.ui"
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
@@ -70,6 +80,15 @@ class Window(QMainWindow, Ui_MainWindow):
         self.actionQuit.triggered.connect(self.menuQuit)
         self.actionAbout.triggered.connect(self.menuAbout)
 
+
+
+        self.toggle_resolution = QCheckBox("Toggle High Resolution (not usually needed)", self)
+
+        self.setMenuWidget(self.toggle_resolution)
+
+
+
+
     def get_scans(self, receivers, target_date, start_frequency, end_frequency):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
@@ -100,7 +119,14 @@ class Window(QMainWindow, Ui_MainWindow):
 
         return qs
 
-    def do_plot(self, receivers, start_date, end_date, start_frequency, end_frequency):
+    def do_plot(
+        self,
+        receivers,
+        start_date,
+        end_date,
+        start_frequency,
+        end_frequency,
+    ):
         # don't want to look at dates with no data, find the most recent session date
         most_recent_session_prior_to_target_datetime = (
             Scan.objects.filter(datetime__lte=end_date, frontend__name__in=receivers)
@@ -135,10 +161,27 @@ class Window(QMainWindow, Ui_MainWindow):
         if end_frequency:
             qs = qs.filter(frequency__lte=end_frequency)
 
+
+
+
+        #Mahmoud Addition query
+
+        stuff= Frequency()._meta
+
+        fields = stuff.get_fields()
+
+        # Extract and print the names of the fields
+        field_names = [field.name for field in fields]
+        #print(field_names)
+
+        qs = qs.filter(view_level_0=True)
+
         # make a 4 column dataFrame for the data needed to plot
         data = pd.DataFrame(
             qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
         )
+
+
 
         if not start_frequency:
             start_frequency = data["frequency"].min()
@@ -156,7 +199,7 @@ class Window(QMainWindow, Ui_MainWindow):
             )
             # color map graph, but only if there is more than one day with data
             unique_days = data.scan__datetime.unique()
-            self.make_color_plot(data, unique_days, receivers, end_date, start_date)
+            #self.make_color_plot(data, unique_days, receivers, end_date, start_date)
 
             # option to save the data from the plot
             if self.saveData.isChecked():
@@ -172,9 +215,64 @@ class Window(QMainWindow, Ui_MainWindow):
                 QtWidgets.QMessageBox.Ok,
             )
 
+
+
+    
+    def dynamic_query(self, freq_min, freq_max, sessions,zoom):
+
+        qs = Frequency.objects.all()
+
+        #find the sessions
+        qs = qs.filter(scan__session__name__in=sessions)
+
+        #filter data by the zoom and freq_min and freq_max
+        qs = qs.filter(frequency__gte=freq_min, frequency__lte=freq_max)
+
+        print(zoom)
+        if(zoom == 0):
+            qs = qs.filter(view_level_0=True)
+        elif (zoom == 1):
+            qs = qs.filter(view_level_1=True)
+        elif(zoom == 2):
+            qs = qs.filter(view_level_2=True)
+        elif(zoom == 3):
+            qs = qs.filter(view_level_3=True)
+        #check if the interval allows for
+
+        #add them together and average the mean
+
+
+        data = pd.DataFrame(
+                qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
+                )
+
+        mean_data_intens = data.groupby(
+            ["scan__datetime", "frequency", "scan__session__name"]
+        ).agg({"intensity": ["mean"]})
+        mean_data_intens.columns = ["intensity_mean"]
+        mean_data = mean_data_intens.reset_index()
+        # sort values so the plot looks better, this has nothing to do with the actual data
+        df = mean_data.sort_values(by=["frequency", "intensity_mean"])
+
+        print("Array length bef: " + str(len(df["frequency"])))
+
+        return df
+
+
+
+
     def make_plot(
-        self, receivers, data, end_date, start_date, start_frequency, end_frequency
+        self,
+        receivers,
+        data,
+        end_date,
+        start_date,
+        start_frequency,
+        end_frequency,
     ):
+
+        high_resolution = self.toggle_resolution.isChecked()
+
         # make a new object with the average intensity for the 2D plot
         mean_data_intens = data.groupby(
             ["scan__datetime", "frequency", "scan__session__name"]
@@ -182,7 +280,7 @@ class Window(QMainWindow, Ui_MainWindow):
         mean_data_intens.columns = ["intensity_mean"]
         mean_data = mean_data_intens.reset_index()
         # sort values so the plot looks better, this has nothing to do with the actual data
-        sorted_mean_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
+        full_data = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
         # generate the description fro the plot
         txt = f" \
@@ -195,7 +293,7 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Your requested projects are below:")
         print("Session Date \t\t Project_ID")
         print("-------------------------------------")
-        sort_by_date = sorted_mean_data.sort_values(by=["scan__session__name"])
+        sort_by_date = full_data.sort_values(by=["scan__session__name"])
         project_ids = sort_by_date["scan__session__name"].unique()
         for i in project_ids:
             proj_date = sort_by_date[
@@ -203,6 +301,28 @@ class Window(QMainWindow, Ui_MainWindow):
             ].scan__datetime.unique()
             proj_date = proj_date.strftime("%Y-%m-%d")
             print(f"", proj_date[0], "\t\t", str(i))
+
+        # if the resolution was selected or if the data isn't big enough
+        if high_resolution or len(full_data["intensity_mean"]) < 15000:
+
+            dynamic = True
+
+            first_filtered_data = full_data
+
+        else:
+            dynamic = True
+
+            """
+            The two resolutions for the dynamic plotting are created here
+            """
+            # caps the data to roughly the average monitor size
+            first_filtered_data = self.data_filter(2000, full_data)
+
+            """ 5% of the original data
+            second_filtered_data = self.data_filter(
+                (len(full_data["intensity_mean"])) * 0.05, full_data
+            )
+            """
 
         # Create the 2D line plot
         fig, ax = plt.subplots(1, figsize=(9, 4))
@@ -212,6 +332,12 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.ylabel("Average Intensity (Jy)")
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
+
+        plt.fill_between(
+            first_filtered_data["frequency"],
+            first_filtered_data["intensity_mean"],
+            color="black",
+        )
 
         # Create the annotations for RFI, only plot if user selects
         if self.yes_annotate.isChecked():
@@ -260,10 +386,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
                 fig.canvas.mpl_connect("button_press_event", onclick)
 
-        # Plot one or both the line plot and the annotations
         plt.plot(
-            sorted_mean_data["frequency"],
-            sorted_mean_data["intensity_mean"],
+            first_filtered_data["frequency"],
+            first_filtered_data["intensity_mean"],
             color="black",
             linewidth=0.5,
         )
@@ -275,6 +400,101 @@ class Window(QMainWindow, Ui_MainWindow):
         x, y, dx, dy = geom.getRect()
         # display the plot to the right of the ui
         mngr.window.setGeometry(459, 0, dx, dy)
+
+        """
+        Dynamic plotting command, activated by matplot axis changing
+        """
+
+
+        sessions = full_data['scan__session__name'].sort_values().unique()
+        self.zoom = 0
+        self.interval_data = first_filtered_data
+
+        def on_lims_change(event_ax):
+
+            windowsize = self.size().width()
+
+            # Finds the x and y limits of this new interval
+            freq_min, freq_max = event_ax.get_xlim()
+            inten_min, inten_max = event_ax.get_ylim()
+
+            df_freq_max = first_filtered_data["frequency"].max()
+
+            df_freq_min = first_filtered_data["frequency"].min()
+
+            pts_per_freq = len(first_filtered_data["frequency"]) / (
+                df_freq_max - df_freq_min
+            )
+
+            freq_diff = freq_max-freq_min
+
+            displayed_pts = pts_per_freq * (freq_max - freq_min)
+
+            replot = False
+
+            #print("Ratio of displayed: " + str(1.2 >= (displayed_pts / windowsize)))
+
+            #checks if its panning motion or zooming
+            if (round(freq_diff*2,1) != 
+                round((self.interval_data["frequency"].max() - self.interval_data["frequency"].min()),1)):
+
+                replot = True
+
+                print("inside the")
+                if 1 >= (displayed_pts / windowsize):
+                    self.zoom =  1
+
+                if 0.4 >= (displayed_pts / windowsize):
+                    self.zoom = 2
+
+                if 0.07 >= (displayed_pts / windowsize):
+                    self.zoom = 3
+
+                if 0.02 >= (displayed_pts / windowsize):
+                    self.zoom = 4
+
+                if 2<= (displayed_pts / windowsize):
+                    # pulls back the scipy filtered data
+                    self.interval_data = first_filtered_data
+                    print("Zoom 0")
+                    self.zoom =  0
+                    plt.fill_between(
+                        first_filtered_data["frequency"],
+                        first_filtered_data["intensity_mean"],
+                        color="black",
+                    )
+                self.interval_data = self.dynamic_query(freq_min-freq_diff*0.5, freq_max+freq_diff*0.5, sessions, self.zoom)
+                #self.interval_data = self.dynamic_query(freq_min, freq_max, sessions, self.zoom)
+            #elif(pan detected)
+
+            
+
+            #print("Array length bef: " + str(len(self.interval_data["frequency"])))
+
+            # replots
+
+            # The only way to get it to update again was putting those commands in this def
+            if(replot):
+                print("replotting")
+                plt.cla()
+                plt.plot(
+                    self.interval_data["frequency"],
+                    self.interval_data["intensity_mean"],
+                    color="black",
+                    linewidth=0.5,
+                )
+                plt.xlim(freq_min, freq_max)  # Set xlim explicitly
+                plt.ylim(inten_min, inten_max)
+                ax.figure.canvas.draw_idle()
+                ax.callbacks.connect("xlim_changed", on_lims_change)
+
+        # no dynamic updating unless checked
+        if dynamic:
+            ax.callbacks.connect("xlim_changed", on_lims_change)
+            #ax.callbacks.connect("ylim_changed", on_lims_change)
+
+        # Plot one or both the line plot and the annotations
+
         plt.show()
 
     def make_color_plot(self, data, unique_days, receivers, end_date, start_date):
