@@ -34,6 +34,9 @@ import time
 #from django.db.models import Q
 
 
+from django.db.models import Q
+
+
 # add .Ui file path here
 qtCreatorFile = os.path.dirname(__file__) + "/RFI_GUI.ui"
 Ui_MainWindow, QtBaseClass = loadUiType(qtCreatorFile)
@@ -80,7 +83,6 @@ class Window(QMainWindow, Ui_MainWindow):
         # connect menus
         self.actionQuit.triggered.connect(self.menuQuit)
         self.actionAbout.triggered.connect(self.menuAbout)
-
 
 
         self.toggle_resolution = QCheckBox("Toggle High Resolution to save the full data", self)
@@ -163,17 +165,27 @@ class Window(QMainWindow, Ui_MainWindow):
             qs = qs.filter(frequency__lte=end_frequency)
 
 
-
         #if the high resolution button is not checked
         if not self.toggle_resolution.isChecked():
             qs = qs.filter(view_level_0=True)
+
+        #Mahmoud Addition query
+
+        stuff= Frequency()._meta
+
+        fields = stuff.get_fields()
+
+        # Extract and print the names of the fields
+        field_names = [field.name for field in fields]
+        #print(field_names)
+
+        qs = qs.filter(view_level_0=True)
 
 
         # make a 4 column dataFrame for the data needed to plot
         data = pd.DataFrame(
             qs.values("frequency", "intensity", "scan__datetime", "scan__session__name")
         )
-
 
         if not start_frequency:
             start_frequency = data["frequency"].min()
@@ -208,9 +220,8 @@ class Window(QMainWindow, Ui_MainWindow):
             )
 
 
-
-    
     def dynamic_query(self, freq_min, freq_max, sessions, zoom):
+
 
         qs = Frequency.objects.all()
 
@@ -246,7 +257,6 @@ class Window(QMainWindow, Ui_MainWindow):
         df = mean_data.sort_values(by=["frequency", "intensity_mean"])
 
         return df
-
 
 
     def make_plot(
@@ -309,6 +319,12 @@ class Window(QMainWindow, Ui_MainWindow):
         plt.ylim(-10, 500)
         plt.xlim(start_frequency, end_frequency)
 
+        plt.fill_between(
+            first_filtered_data["frequency"],
+            first_filtered_data["intensity_mean"],
+            color="black",
+        )
+
         # Create the annotations for RFI, only plot if user selects
         if self.yes_annotate.isChecked():
             self.getrfi = self.getrfi_func(start_frequency, end_frequency)
@@ -357,8 +373,10 @@ class Window(QMainWindow, Ui_MainWindow):
                 fig.canvas.mpl_connect("button_press_event", onclick)
 
         plt.plot(
+
             mean_data["frequency"],
             mean_data["intensity_mean"],
+
             color="black",
             linewidth=0.5,
         )
@@ -386,7 +404,6 @@ class Window(QMainWindow, Ui_MainWindow):
 
         more_than_10 = len(sessions) > 10
 
-
         def on_lims_change(event_ax):
 
             windowsize = self.size().width()
@@ -394,6 +411,7 @@ class Window(QMainWindow, Ui_MainWindow):
             # Finds the x and y limits of this new interval
             freq_min, freq_max = event_ax.get_xlim()
             inten_min, inten_max = event_ax.get_ylim()
+
 
             #Finds the max/min frequency of the interval
             df_freq_max = mean_data["frequency"].max()
@@ -410,6 +428,8 @@ class Window(QMainWindow, Ui_MainWindow):
             #start by not replotting, and change if needed
             replot = False
 
+
+            replot = False
 
             #checks if its panning motion or zooming (rounds to whole number)
             if (round(freq_diff*2,0) != 
@@ -466,7 +486,6 @@ class Window(QMainWindow, Ui_MainWindow):
         # no dynamic updating unless checked
         if dynamic:
             ax.callbacks.connect("xlim_changed", on_lims_change)
-
         plt.show()
 
     def make_color_plot(self, data, unique_days, receivers, end_date, start_date):

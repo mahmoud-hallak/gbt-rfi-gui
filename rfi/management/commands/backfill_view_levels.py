@@ -9,6 +9,7 @@ from rfi.models import (
 	Frequency
 )
 
+
 class Command(BaseCommand):
 	help = ""
 
@@ -138,4 +139,5 @@ class Command(BaseCommand):
 	    #Print(len(filtered_data))
 
 	    return filtered_data
+
 
